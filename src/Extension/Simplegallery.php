@@ -183,7 +183,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 	/**
 	 * Renders a gallery for a folder relative to Joomla's images directory.
 	 *
-	 * @param[in] string $relativeFolder Relative folder below /images.
+	 * @param[in] string $relativeFolder Relative folder below /images or /images/stories.
 	 *
 	 * @return string
 	 */
@@ -210,9 +210,23 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 			return '<!-- simplegallery: invalid folder -->';
 		}
 
-		$imagesRoot = Path::clean(JPATH_ROOT . '/images/stories');
+		$imagesRoot = Path::clean(JPATH_ROOT . '/images');
+
 		$galleryFolder = Path::clean($imagesRoot . '/' . $relativeFolder);
 		$realGalleryFolder = realpath($galleryFolder);
+
+		if ($realGalleryFolder === false)
+		{
+			$galleryFolder = Path::clean($imagesRoot . '/stories/' . $relativeFolder);
+			$realGalleryFolder = realpath($galleryFolder);
+
+			Log::add(
+				'Fallback to /images/stories: ' . $galleryFolder,
+				Log::DEBUG,
+				'plg_content_simplegallery'
+			);
+		}
+
 		$realImagesRoot = realpath($imagesRoot);
 
 		Log::add('Images root: ' . $imagesRoot, Log::DEBUG, 'plg_content_simplegallery');
@@ -225,26 +239,6 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 				Log::WARNING,
 				'plg_content_simplegallery'
 			);
-
-			$parentFolder = dirname($galleryFolder);
-
-			if (is_dir($parentFolder))
-			{
-				$subfolders = Folder::folders($parentFolder);
-				Log::add(
-					'Existing subfolders in parent folder "' . $parentFolder . '": ' . implode(', ', $subfolders),
-					Log::DEBUG,
-					'plg_content_simplegallery'
-				);
-			}
-			else
-			{
-				Log::add(
-					'Parent folder also does not exist: ' . $parentFolder,
-					Log::DEBUG,
-					'plg_content_simplegallery'
-				);
-			}
 
 			return '<!-- simplegallery: folder does not exist: ' . htmlspecialchars($galleryFolder, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . ' -->';
 		}
@@ -305,8 +299,8 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 		$thumbWidth = max(32, (int) $this->params->get('thumb_width', 240));
 		$thumbHeight = max(32, (int) $this->params->get('thumb_height', 180));
 
-		$rows = [];
-		$currentRow = [];
+		$html = [];
+		$html[] = '<div class="simplegallery-grid" style="--simplegallery-columns: ' . $columns . ';">';
 
 		foreach ($imageFiles as $imagePath)
 		{
@@ -323,53 +317,10 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 				continue;
 			}
 
-			$currentRow[] = $cellHtml;
-
-			if (\count($currentRow) >= $columns)
-			{
-				$rows[] = $currentRow;
-				$currentRow = [];
-			}
+			$html[] = '<div class="simplegallery-item">' . $cellHtml . '</div>';
 		}
 
-		if (!empty($currentRow))
-		{
-			$rows[] = $currentRow;
-		}
-
-		if (empty($rows))
-		{
-			Log::add('All image cells failed to render.', Log::WARNING, 'plg_content_simplegallery');
-
-			return '<!-- simplegallery: all image cells failed -->';
-		}
-
-		$html = [];
-		$html[] = '<table class="simplegallery-table">';
-		$html[] = '<tbody>';
-
-		foreach ($rows as $row)
-		{
-			$html[] = '<tr>';
-
-			foreach ($row as $cell)
-			{
-				$html[] = '<td>' . $cell . '</td>';
-			}
-
-			if (\count($row) < $columns)
-			{
-				for ($i = \count($row); $i < $columns; ++$i)
-				{
-					$html[] = '<td></td>';
-				}
-			}
-
-			$html[] = '</tr>';
-		}
-
-		$html[] = '</tbody>';
-		$html[] = '</table>';
+		$html[] = '</div>';
 
 		return implode('', $html);
 	}
