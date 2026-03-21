@@ -7,7 +7,7 @@
 	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
 	<authorEmail></authorEmail>
 	<authorUrl></authorUrl>
-	<version>1.0.10</version>
+	<version>1.0.11</version>
 	<description>PLG_CONTENT_SIMPLEGALLERY_XML_DESCRIPTION</description>
 	<namespace path="src">Joomla\Plugin\Content\Simplegallery</namespace>
 
