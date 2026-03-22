@@ -26,14 +26,23 @@
 	display: inline;
 	max-width: 100%;
 	height: auto;
-	margin: 0 0 0 0;
+	margin: 0;
 	border-radius: 0.25rem;
 	box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18);
 }
 
+.simplegallery-caption
+{
+	margin-top: 0.4rem;
+	font-size: 0.9rem;
+	line-height: 1.3;
+	word-break: break-word;
+	opacity: 0.9;
+}
+
 .simplegallery-empty
 {
-	margin: 0 0;
+	margin: 0;
 	font-style: italic;
 	opacity: 0.75;
 }

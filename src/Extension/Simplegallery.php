@@ -21,8 +21,8 @@ use Joomla\CMS\Uri\Uri;
 use Joomla\Event\SubscriberInterface;
 
 /**
- * Content plugin which replaces {simplegallery}...{/simplegallery} tags
- * with a thumbnail table gallery.
+ * Content plugin which replaces {simplegallery ...} tags
+ * with a thumbnail gallery.
  */
 final class Simplegallery extends CMSPlugin implements SubscriberInterface
 {
@@ -49,7 +49,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 	 * Handles content preparation and replaces simplegallery tags.
 	 *
 	 * Supported form:
-	 * {simplegallery}folder/name{/simplegallery}
+	 * {simplegallery folder="folder/name" width="320" columns="2" sort="date" sortorder="ascending" showcaptions}
 	 *
 	 * @param[in] ContentPrepareEvent $event The Joomla content event.
 	 *
@@ -96,7 +96,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 			return;
 		}
 
-		if (!\str_contains($item->{$textProperty}, '{simplegallery}'))
+		if (!\str_contains($item->{$textProperty}, '{simplegallery'))
 		{
 			return;
 		}
@@ -110,18 +110,27 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 		$this->InjectCss();
 
 		$item->{$textProperty} = (string) preg_replace_callback(
-			'#\{simplegallery\}\s*(.*?)\s*\{/simplegallery\}#si',
+			'#\{simplegallery(?P<params>[^}]*)\}#i',
 			function (array $matches): string
 			{
-				$folder = trim((string) ($matches[1] ?? ''));
+				$rawParams = trim((string) ($matches['params'] ?? ''));
 
 				Log::add(
-					'Found simplegallery tag with folder: "' . $folder . '"',
+					'Found simplegallery tag with raw params: "' . $rawParams . '"',
 					Log::DEBUG,
 					'plg_content_simplegallery'
 				);
 
-				return $this->RenderGalleryFromFolder($folder);
+				$tagOptions = $this->ParseTagParameters($rawParams);
+				$options = $this->ResolveGalleryOptions($tagOptions);
+
+				Log::add(
+					'Resolved options: ' . json_encode($options),
+					Log::DEBUG,
+					'plg_content_simplegallery'
+				);
+
+				return $this->RenderGallery($options);
 			},
 			$item->{$textProperty}
 		);
@@ -171,7 +180,6 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 		$document = $application->getDocument();
 		$wa = $document->getWebAssetManager();
 
-		// Register + use stylesheet
 		$wa->registerAndUseStyle(
 			'plg_content_simplegallery',
 			'media/plg_content_simplegallery/css/simplegallery.css'
@@ -181,14 +189,180 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 	}
 
 	/**
-	 * Renders a gallery for a folder relative to Joomla's images directory.
+	 * Parses tag parameters from the simplegallery tag.
 	 *
-	 * @param[in] string $relativeFolder Relative folder below /images or /images/stories.
+	 * Supported forms:
+	 * folder="urlaub/spanien"
+	 * width="320"
+	 * columns="2"
+	 * sort="date"
+	 * sortorder="ascending"
+	 * showcaptions
+	 *
+	 * @param[in] string $parameterText Raw parameter text from the tag.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function ParseTagParameters(string $parameterText): array
+	{
+		$options = [];
+
+		if ($parameterText === '')
+		{
+			return $options;
+		}
+
+		$pattern = '/([a-zA-Z][a-zA-Z0-9_-]*)(?:\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\']+)))?/';
+
+		if (!preg_match_all($pattern, $parameterText, $matches, PREG_SET_ORDER))
+		{
+			return $options;
+		}
+
+		foreach ($matches as $match)
+		{
+			$key = strtolower((string) ($match[1] ?? ''));
+
+			if ($key === '')
+			{
+				continue;
+			}
+
+			$hasValue = array_key_exists(2, $match) || array_key_exists(3, $match) || array_key_exists(4, $match);
+
+			if (
+				(!empty($match[2]) || $match[2] === '0')
+				|| (!empty($match[3]) || $match[3] === '0')
+				|| (!empty($match[4]) || $match[4] === '0')
+			)
+			{
+				$value = (string) ($match[2] !== '' ? $match[2] : ($match[3] !== '' ? $match[3] : $match[4]));
+				$options[$key] = $value;
+			}
+			elseif ($hasValue)
+			{
+				$options[$key] = '';
+			}
+			else
+			{
+				$options[$key] = true;
+			}
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Resolves final gallery options from tag overrides and plugin defaults.
+	 *
+	 * Resolution order:
+	 * 1. tag parameter
+	 * 2. plugin setting
+	 * 3. hardcoded fallback
+	 *
+	 * @param[in] array<string, mixed> $tagOptions Parsed tag options.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function ResolveGalleryOptions(array $tagOptions): array
+	{
+		$folder = trim((string) ($tagOptions['folder'] ?? ''));
+		$folder = str_replace('\\', '/', $folder);
+		$folder = trim($folder, '/');
+
+		$width = $tagOptions['width'] ?? $this->params->get('thumb_width', 240);
+		$columns = $tagOptions['columns'] ?? $this->params->get('columns', 4);
+		$thumbHeight = $this->params->get('thumb_height', 180);
+		$sort = strtolower(trim((string) ($tagOptions['sort'] ?? $this->params->get('sort', 'filename'))));
+		$sortOrder = strtolower(trim((string) ($tagOptions['sortorder'] ?? $this->params->get('sort_order', 'ascending'))));
+
+		$showCaptionsDefault = $this->ToBoolean($this->params->get('show_captions', 0), false);
+
+		if (array_key_exists('showcaptions', $tagOptions))
+		{
+			$showCaptions = $this->ToBoolean($tagOptions['showcaptions'], true);
+		}
+		else
+		{
+			$showCaptions = $showCaptionsDefault;
+		}
+
+		$width = max(32, (int) $width);
+		$columns = max(1, (int) $columns);
+		$thumbHeight = max(32, (int) $thumbHeight);
+
+		if ($sort !== 'filename' && $sort !== 'date')
+		{
+			$sort = 'filename';
+		}
+
+		if ($sortOrder !== 'ascending' && $sortOrder !== 'descending')
+		{
+			$sortOrder = 'ascending';
+		}
+
+		return [
+			'folder' => $folder,
+			'width' => $width,
+			'columns' => $columns,
+			'thumbHeight' => $thumbHeight,
+			'showCaptions' => $showCaptions,
+			'sort' => $sort,
+			'sortOrder' => $sortOrder,
+		];
+	}
+
+	/**
+	 * Converts a mixed value to boolean.
+	 *
+	 * @param[in] mixed   $value        Value to convert.
+	 * @param[in] boolean $defaultValue Default value if conversion is ambiguous.
+	 *
+	 * @return boolean
+	 */
+	private function ToBoolean(mixed $value, bool $defaultValue): bool
+	{
+		if (\is_bool($value))
+		{
+			return $value;
+		}
+
+		if (\is_int($value))
+		{
+			return $value !== 0;
+		}
+
+		$stringValue = strtolower(trim((string) $value));
+
+		if ($stringValue === '')
+		{
+			return $defaultValue;
+		}
+
+		if (\in_array($stringValue, ['1', 'true', 'yes', 'on'], true))
+		{
+			return true;
+		}
+
+		if (\in_array($stringValue, ['0', 'false', 'no', 'off'], true))
+		{
+			return false;
+		}
+
+		return $defaultValue;
+	}
+
+	/**
+	 * Renders a gallery from resolved options.
+	 *
+	 * @param[in] array<string, mixed> $options Resolved gallery options.
 	 *
 	 * @return string
 	 */
-	private function RenderGalleryFromFolder(string $relativeFolder): string
+	private function RenderGallery(array $options): string
 	{
+		$relativeFolder = (string) ($options['folder'] ?? '');
+
 		if ($relativeFolder === '')
 		{
 			Log::add('Gallery folder is empty.', Log::WARNING, 'plg_content_simplegallery');
@@ -196,10 +370,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 			return '<!-- simplegallery: empty folder value -->';
 		}
 
-		$relativeFolder = str_replace('\\', '/', $relativeFolder);
-		$relativeFolder = trim($relativeFolder, '/');
-
-		if ($relativeFolder === '' || str_contains($relativeFolder, '..'))
+		if (str_contains($relativeFolder, '..'))
 		{
 			Log::add(
 				'Gallery folder rejected for security reasons: "' . $relativeFolder . '"',
@@ -210,70 +381,15 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 			return '<!-- simplegallery: invalid folder -->';
 		}
 
-		$imagesRoot = Path::clean(JPATH_ROOT . '/images');
+		$resolvedFolder = $this->ResolveGalleryFolder($relativeFolder);
 
-		$galleryFolder = Path::clean($imagesRoot . '/' . $relativeFolder);
-		$realGalleryFolder = realpath($galleryFolder);
-
-		if ($realGalleryFolder === false)
+		if ($resolvedFolder === null)
 		{
-			$galleryFolder = Path::clean($imagesRoot . '/stories/' . $relativeFolder);
-			$realGalleryFolder = realpath($galleryFolder);
-
-			Log::add(
-				'Fallback to /images/stories: ' . $galleryFolder,
-				Log::DEBUG,
-				'plg_content_simplegallery'
-			);
+			return '<!-- simplegallery: folder does not exist -->';
 		}
 
-		$realImagesRoot = realpath($imagesRoot);
-
-		Log::add('Images root: ' . $imagesRoot, Log::DEBUG, 'plg_content_simplegallery');
-		Log::add('Gallery folder: ' . $galleryFolder, Log::DEBUG, 'plg_content_simplegallery');
-
-		if ($realGalleryFolder === false)
-		{
-			Log::add(
-				'Gallery folder does not exist: ' . $galleryFolder,
-				Log::WARNING,
-				'plg_content_simplegallery'
-			);
-
-			return '<!-- simplegallery: folder does not exist: ' . htmlspecialchars($galleryFolder, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . ' -->';
-		}
-
-		if ($realImagesRoot === false)
-		{
-			Log::add('Images root does not resolve.', Log::ERROR, 'plg_content_simplegallery');
-
-			return '<!-- simplegallery: images root does not resolve -->';
-		}
-
-		$realGalleryFolder = Path::clean($realGalleryFolder);
-		$realImagesRoot = Path::clean($realImagesRoot);
-
-		if (!str_starts_with($realGalleryFolder, $realImagesRoot))
-		{
-			Log::add(
-				'Gallery folder is outside images root: ' . $realGalleryFolder,
-				Log::WARNING,
-				'plg_content_simplegallery'
-			);
-
-			return '<!-- simplegallery: folder outside images root -->';
-		}
-
-		if (!is_dir($realGalleryFolder))
-		{
-			Log::add(
-				'Resolved gallery folder is not a directory: ' . $realGalleryFolder,
-				Log::WARNING,
-				'plg_content_simplegallery'
-			);
-
-			return '<!-- simplegallery: resolved path is not a directory -->';
-		}
+		$realGalleryFolder = $resolvedFolder['absolutePath'];
+		$publicFolderPath = $resolvedFolder['publicPath'];
 
 		$imageFiles = Folder::files(
 			$realGalleryFolder,
@@ -293,18 +409,24 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 			return '<div class="simplegallery-empty">No images found.</div>';
 		}
 
-		natcasesort($imageFiles);
-
-		$columns = max(1, (int) $this->params->get('columns', 4));
-		$thumbWidth = max(32, (int) $this->params->get('thumb_width', 240));
-		$thumbHeight = max(32, (int) $this->params->get('thumb_height', 180));
+		$this->SortImageFiles(
+			$imageFiles,
+			(string) $options['sort'],
+			(string) $options['sortOrder']
+		);
 
 		$html = [];
-		$html[] = '<div class="simplegallery-grid" style="--simplegallery-columns: ' . $columns . ';">';
+		$html[] = '<div class="simplegallery-grid" style="--simplegallery-columns: ' . (int) $options['columns'] . ';">';
 
 		foreach ($imageFiles as $imagePath)
 		{
-			$cellHtml = $this->RenderImageCell($imagePath, $relativeFolder, $thumbWidth, $thumbHeight);
+			$cellHtml = $this->RenderImageCell(
+				$imagePath,
+				$publicFolderPath,
+				(int) $options['width'],
+				(int) $options['thumbHeight'],
+				(bool) $options['showCaptions']
+			);
 
 			if ($cellHtml === '')
 			{
@@ -326,20 +448,148 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 	}
 
 	/**
+	 * Resolves a gallery folder below /images or /images/stories.
+	 *
+	 * @param[in] string $relativeFolder Folder relative to /images or /images/stories.
+	 *
+	 * @return array<string, string>|null
+	 */
+	private function ResolveGalleryFolder(string $relativeFolder): ?array
+	{
+		$imagesRoot = Path::clean(JPATH_ROOT . '/images');
+		$realImagesRoot = realpath($imagesRoot);
+
+		Log::add('Images root: ' . $imagesRoot, Log::DEBUG, 'plg_content_simplegallery');
+
+		if ($realImagesRoot === false)
+		{
+			Log::add('Images root does not resolve.', Log::ERROR, 'plg_content_simplegallery');
+
+			return null;
+		}
+
+		$candidates = [
+			[
+				'filesystemPath' => Path::clean($imagesRoot . '/' . $relativeFolder),
+				'publicPath' => 'images/' . $relativeFolder,
+			],
+			[
+				'filesystemPath' => Path::clean($imagesRoot . '/stories/' . $relativeFolder),
+				'publicPath' => 'images/stories/' . $relativeFolder,
+			],
+		];
+
+		$realImagesRoot = Path::clean($realImagesRoot);
+
+		foreach ($candidates as $candidate)
+		{
+			$realGalleryFolder = realpath($candidate['filesystemPath']);
+
+			if ($realGalleryFolder === false)
+			{
+				continue;
+			}
+
+			$realGalleryFolder = Path::clean($realGalleryFolder);
+
+			if (!str_starts_with($realGalleryFolder, $realImagesRoot))
+			{
+				Log::add(
+					'Gallery folder is outside images root: ' . $realGalleryFolder,
+					Log::WARNING,
+					'plg_content_simplegallery'
+				);
+
+				continue;
+			}
+
+			if (!is_dir($realGalleryFolder))
+			{
+				Log::add(
+					'Resolved gallery folder is not a directory: ' . $realGalleryFolder,
+					Log::WARNING,
+					'plg_content_simplegallery'
+				);
+
+				continue;
+			}
+
+			Log::add(
+				'Resolved gallery folder: ' . $realGalleryFolder . ' (public path: ' . $candidate['publicPath'] . ')',
+				Log::DEBUG,
+				'plg_content_simplegallery'
+			);
+
+			return [
+				'absolutePath' => $realGalleryFolder,
+				'publicPath' => trim($candidate['publicPath'], '/'),
+			];
+		}
+
+		Log::add(
+			'Gallery folder does not exist for relative folder: ' . $relativeFolder,
+			Log::WARNING,
+			'plg_content_simplegallery'
+		);
+
+		return null;
+	}
+
+	/**
+	 * Sorts image files according to the configured mode.
+	 *
+	 * @param[in,out] array<int, string> $imageFiles Image file paths.
+	 * @param[in]     string             $sort       Sort mode.
+	 * @param[in]     string             $sortOrder  Sort order.
+	 *
+	 * @return void
+	 */
+	private function SortImageFiles(array &$imageFiles, string $sort, string $sortOrder): void
+	{
+		usort(
+			$imageFiles,
+			function (string $left, string $right) use ($sort, $sortOrder): int
+			{
+				if ($sort === 'date')
+				{
+					$leftValue = filemtime($left) ?: 0;
+					$rightValue = filemtime($right) ?: 0;
+				}
+				else
+				{
+					$leftValue = strtolower(basename($left));
+					$rightValue = strtolower(basename($right));
+				}
+
+				$result = $leftValue <=> $rightValue;
+
+				if ($sortOrder === 'descending')
+				{
+					$result *= -1;
+				}
+
+				return $result;
+			}
+		);
+	}
+
+	/**
 	 * Renders a single image cell.
 	 *
-	 * @param[in] string $absoluteImagePath Absolute filesystem path to the image.
-	 * @param[in] string $relativeFolder    Folder relative to /images.
-	 * @param[in] int    $thumbWidth        Thumbnail width.
-	 * @param[in] int    $thumbHeight       Thumbnail height.
+	 * @param[in] string  $absoluteImagePath Absolute filesystem path to the image.
+	 * @param[in] string  $publicFolderPath  Public folder path relative to Joomla root.
+	 * @param[in] int     $thumbWidth        Thumbnail width.
+	 * @param[in] int     $thumbHeight       Thumbnail height.
+	 * @param[in] boolean $showCaptions      Whether captions should be shown.
 	 *
 	 * @return string
 	 */
 	private function RenderImageCell(
 		string $absoluteImagePath,
-		string $relativeFolder,
+		string $publicFolderPath,
 		int $thumbWidth,
-		int $thumbHeight
+		int $thumbHeight,
+		bool $showCaptions
 	): string
 	{
 		$filename = basename($absoluteImagePath);
@@ -351,7 +601,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 			return '';
 		}
 
-		$fullImageRelativePath = 'images/stories/' . trim($relativeFolder, '/') . '/' . $filename;
+		$fullImageRelativePath = trim($publicFolderPath, '/') . '/' . $filename;
 		$fullImageUrl = Uri::root() . str_replace('%2F', '/', rawurlencode($fullImageRelativePath));
 
 		$thumbAbsolutePath = $this->GetOrCreateThumbnail($absoluteImagePath, $thumbWidth, $thumbHeight);
@@ -381,12 +631,20 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 		}
 
 		$thumbUrl = Uri::root() . str_replace('%2F', '/', rawurlencode($thumbRelativePath));
-		$alt = htmlspecialchars(pathinfo($filename, PATHINFO_FILENAME), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+		$caption = pathinfo($filename, PATHINFO_FILENAME);
+		$escapedCaption = htmlspecialchars($caption, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-		return
-			'<a class="simplegallery-thumb-link" href="' . htmlspecialchars($fullImageUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" rel="Lightbox">' .
-				'<img class="simplegallery-thumb" src="' . htmlspecialchars($thumbUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" alt="' . $alt . '" loading="lazy">' .
-			'</a>';
+		$html = [];
+		$html[] = '<a class="simplegallery-thumb-link" href="' . htmlspecialchars($fullImageUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" rel="Lightbox">';
+		$html[] = '<img class="simplegallery-thumb" src="' . htmlspecialchars($thumbUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" alt="' . $escapedCaption . '" loading="lazy">';
+		$html[] = '</a>';
+
+		if ($showCaptions)
+		{
+			$html[] = '<div class="simplegallery-caption">' . $escapedCaption . '</div>';
+		}
+
+		return implode('', $html);
 	}
 
 	/**

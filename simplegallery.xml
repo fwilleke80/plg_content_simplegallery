@@ -3,11 +3,11 @@
 	<name>PLG_CONTENT_SIMPLEGALLERY</name>
 	<author>Frank Willeke</author>
 	<creationDate>2026-03-21</creationDate>
-	<copyright>(C) 2026 by Frank Willeke</copyright>
-	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+	<copyright>(c) 2026 by Frank Willeke</copyright>
+	<license>GNU General Public License version 2 or later; see LICENSE</license>
 	<authorEmail></authorEmail>
 	<authorUrl></authorUrl>
-	<version>1.0.13</version>
+	<version>1.1.0</version>
 	<description>PLG_CONTENT_SIMPLEGALLERY_XML_DESCRIPTION</description>
 	<namespace path="src">Joomla\Plugin\Content\Simplegallery</namespace>
 
@@ -60,6 +60,40 @@
 					min="32"
 					max="2000"
 				/>
+
+				<field
+					name="show_captions"
+					type="radio"
+					label="PLG_CONTENT_SIMPLEGALLERY_SHOW_CAPTIONS_LABEL"
+					description="PLG_CONTENT_SIMPLEGALLERY_SHOW_CAPTIONS_DESC"
+					default="0"
+					class="btn-group btn-group-yesno"
+				>
+					<option value="1">JYES</option>
+					<option value="0">JNO</option>
+				</field>
+
+				<field
+					name="sort"
+					type="list"
+					label="PLG_CONTENT_SIMPLEGALLERY_SORT_LABEL"
+					description="PLG_CONTENT_SIMPLEGALLERY_SORT_DESC"
+					default="filename"
+				>
+					<option value="filename">PLG_CONTENT_SIMPLEGALLERY_SORT_FILENAME</option>
+					<option value="date">PLG_CONTENT_SIMPLEGALLERY_SORT_DATE</option>
+				</field>
+
+				<field
+					name="sort_order"
+					type="list"
+					label="PLG_CONTENT_SIMPLEGALLERY_SORT_ORDER_LABEL"
+					description="PLG_CONTENT_SIMPLEGALLERY_SORT_ORDER_DESC"
+					default="ascending"
+				>
+					<option value="ascending">PLG_CONTENT_SIMPLEGALLERY_SORT_ORDER_ASCENDING</option>
+					<option value="descending">PLG_CONTENT_SIMPLEGALLERY_SORT_ORDER_DESCENDING</option>
+				</field>
 
 				<field
 					name="cache_folder"
