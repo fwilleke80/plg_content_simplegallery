@@ -1,160 +1,181 @@
-# SimpleGallery (Joomla Content Plugin)
+# Simple Gallery Content Plugin for Joomla
 
-A lightweight Joomla content plugin that renders image galleries from a folder using a simple tag.
+A lightweight Joomla! content plugin that renders image galleries from a folder using a simple tag syntax.
 
-It scans a folder inside Joomla’s `/images` directory, generates thumbnails, and outputs a clean gallery with clickable images (compatible with lightbox extensions like JCE MediaBox).
+The plugin scans article content for `{simplegallery ...}` tags and replaces them with a responsive image gallery, including automatic thumbnail generation and optional Lightbox support (via JCE MediaBox or similar extensions).
 
 ---
 
 ## Features
 
-- Simple `{simplegallery}...{/simplegallery}` syntax
-- Automatically reads images from a folder
-- Generates thumbnails on demand
-- Outputs a responsive gallery grid
-- Uses standard `<a>` links (works with external lightbox plugins)
-- Clean separation of PHP and CSS
-- No heavy dependencies
-
----
-
-## Installation
-
-1. Zip the plugin folder (or use the provided ZIP)
-2. In Joomla backend:
-   - Go to **System → Install → Extensions**
-   - Upload the ZIP file
-3. Enable the plugin:
-   - Go to **Extensions → Plugins**
-   - Search for **"Content - SimpleGallery"**
-   - Enable it
+- Simple tag-based usage inside Joomla! articles
+- Automatic thumbnail generation and caching
+- Configurable gallery layout (columns, spacing, sizes)
+- Sorting options (name, date, random)
+- Caption support (from filename)
+- Lightweight and dependency-free (except optional Lightbox extension)
+- CSS loaded from external file for easy customization
 
 ---
 
 ## Usage
 
-Insert the gallery tag into any Joomla article:
+Insert the gallery tag into your article:
 
 ```text
-{simplegallery}my-folder{/simplegallery}
+{simplegallery folder="myfolder"}
 ```
 
-### Folder Location
+### Example
 
-The folder must be located inside:
+```text
+{simplegallery folder="urlaub/spanien" columns="4" sort="name" sortorder="asc"}
+```
 
-```txt
-/images/stories/my-folder
+---
+
+## Folder Structure
+
+The `folder` parameter is relative to Joomla’s image directory.
+
+```text
+/images/stories/<folder>
 ```
 
 Example:
 
-```txt
-/images/stories/urlaub/spanien
+```text
+{simplegallery folder="holiday/spain"}
 ```
 
-Used as:
+will resolve to:
 
 ```text
-{simplegallery}urlaub/spanien{/simplegallery}
+/images/stories/holiday/spain
 ```
 
 ---
 
-## Supported Images
+## Tag Parameters
 
-The plugin automatically processes common formats:
+All parameters are optional except `folder`.
 
-- JPG / JPEG
-- PNG
-- GIF
-- WebP (if supported by server)
+### Required
+
+| Parameter | Description                                                           |
+|-----------|-----------------------------------------------------------------------|
+| `folder`  | Path to the image folder (relative to `/images` or `/images/stories`) |
 
 ---
 
-## How It Works
+### Optional
 
-1. Joomla triggers `onContentPrepare`
-2. The plugin scans for `{simplegallery}` tags
-3. It reads all images from the specified folder
-4. Thumbnails are generated (cached)
-5. HTML output is injected into the article
+| Parameter          | Description                              | Default        |
+|--------------------|------------------------------------------|----------------|
+| `columns`          | Number of thumbnail columns              | Plugin setting |
+| `thumbnail_width`  | Width of thumbnails (px)                 | Plugin setting |
+| `thumbnail_height` | Height of thumbnails (px)                | Plugin setting |
+| `spacing`          | Space between images (px)                | Plugin setting |
+| `sort`             | Sorting method: `name`, `date`, `random` | Plugin setting |
+| `sortorder`        | `asc` or `desc`                          | Plugin setting |
+
+---
+
+## Defaults & Fallback Behavior
+
+If a parameter is **not specified in the tag**, the plugin uses the default value configured in the plugin settings.
+
+This applies to all parameters (columns, sorting, sizes, etc.).
+
+---
+
+## Thumbnail Handling
+
+- Thumbnails are generated automatically on first use
+- Stored in a cache directory (inside Joomla’s filesystem)
+- Reused on subsequent page loads
+- Improves performance significantly for large galleries
+
+---
+
+## Captions
+
+- Captions are derived from the image filename
+- Filename is cleaned (underscores and dashes replaced with spaces)
+
+Example:
+
+```text
+my_holiday-photo.jpg → "my holiday photo"
+```
 
 ---
 
 ## Lightbox Support
 
-This plugin does **not include its own lightbox**.
+The plugin itself does not implement a Lightbox.
 
-Instead, it generates standard links:
+It relies on external extensions such as:
 
-```html
-<a href="full-image.jpg">
+- **System - JCE MediaBox 2**
+
+If installed and enabled, clicking an image will open it in a Lightbox automatically.
+
+---
+
+## CSS Customization
+
+All styling is located in:
+
+```text
+media/plg_content_simplegallery/css/simplegallery.css
 ```
 
-If you use an extension like:
+You can freely modify this file to:
 
-- **JCE MediaBox**
-- or any lightbox that reacts to `<a>` tags with `rel="Lightbox"`
-
-...images will automatically open in a lightbox. Otherwise, they will simply open as a new page.
-
----
-
-## 🎨 Styling
-
-CSS is located here:
-
-```css
-/media/plg_content_simplegallery/css/simplegallery.css
-```
-
-You can freely modify it.
+- Change layout appearance
+- Adjust spacing
+- Customize hover effects
+- Integrate with your site design
 
 ---
 
-## 📁 Project Structure
+## How It Works (Technical Overview)
 
-```txt
-plg_content_simplegallery/
-├── src/
-│   └── Extension/
-│       └── Simplegallery.php
-├── media/
-│   └── css/
-│       └── simplegallery.css
-├── language/
-├── services/
-├── simplegallery.xml
-```
+1. `onContentPrepare()` scans article text
+2. Detects `{simplegallery ...}` tags
+3. Parses parameters from the tag
+4. Resolves folder and loads images
+5. Applies sorting and configuration
+6. Generates thumbnails if needed
+7. Renders HTML output
+8. Replaces the tag in the article
 
 ---
 
-## Debugging
+## Limitations
 
-The plugin uses Joomla logging:
-
-- Category: `plg_content_simplegallery`
-
-Enable debug logging in Joomla to inspect behavior.
+- Only supports local image folders
+- No built-in slider or carousel (grid layout only for now)
+- No EXIF-based sorting (currently filename/date only)
 
 ---
 
-## Notes
+## Planned Improvements
 
-- Folder paths are **relative to `/images/stories/`**
-- No recursion: only files directly in the folder are used
-- Thumbnails are generated automatically (ensure write permissions)
-- Works only on frontend (`site` application)
+- Template-based rendering system (grid, slider, carousel)
+- More flexible caption handling
+- Optional lazy loading
+- Better Lightbox integration
 
 ---
 
 ## License
 
-GNU General Public License v2 or later.
+MIT License (or whatever you choose)
 
 ---
 
-## Copyright
+## Author
 
-(c) 2026 by Frank Willeke
+Frank Willeke
