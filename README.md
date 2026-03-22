@@ -11,7 +11,7 @@ The plugin scans article content for `{simplegallery ...}` tags and replaces the
 - Simple tag-based usage inside Joomla! articles
 - Automatic thumbnail generation and caching
 - Configurable gallery layout (columns, spacing, sizes)
-- Sorting options (name, date, random)
+- Sorting options (name, date)
 - Caption support (from filename)
 - Lightweight and dependency-free (except optional Lightbox extension)
 - CSS loaded from external file for easy customization
@@ -76,7 +76,7 @@ All parameters are optional except `folder`.
 | `thumbnail_width`  | Width of thumbnails (px)                 | Plugin setting |
 | `thumbnail_height` | Height of thumbnails (px)                | Plugin setting |
 | `spacing`          | Space between images (px)                | Plugin setting |
-| `sort`             | Sorting method: `name`, `date`, `random` | Plugin setting |
+| `sort`             | Sorting method: `name`, `date`.          | Plugin setting |
 | `sortorder`        | `asc` or `desc`                          | Plugin setting |
 | `layout`           | Layout template to use: `grid`, `slider` | Plugin setting |
 
