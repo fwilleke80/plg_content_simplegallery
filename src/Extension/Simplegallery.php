@@ -49,7 +49,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 	 * Handles content preparation and replaces simplegallery tags.
 	 *
 	 * Supported form:
-	 * {simplegallery folder="folder/name" width="320" columns="2" sort="date" sortorder="ascending" showcaptions}
+	 * {simplegallery folder="folder/with/images" width="320" columns="2" layout="grid" sort="date" sortorder="ascending" showcaptions}
 	 *
 	 * @param[in] ContentPrepareEvent $event The Joomla content event.
 	 *
@@ -195,6 +195,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 	 * folder="urlaub/spanien"
 	 * width="320"
 	 * columns="2"
+	 * layout="grid"
 	 * sort="date"
 	 * sortorder="ascending"
 	 * showcaptions
@@ -273,6 +274,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 		$width = $tagOptions['width'] ?? $this->params->get('thumb_width', 240);
 		$columns = $tagOptions['columns'] ?? $this->params->get('columns', 4);
 		$thumbHeight = $this->params->get('thumb_height', 180);
+		$layout = strtolower(trim((string) ($tagOptions['layout'] ?? $this->params->get('layout', 'grid'))));
 		$sort = strtolower(trim((string) ($tagOptions['sort'] ?? $this->params->get('sort', 'filename'))));
 		$sortOrder = strtolower(trim((string) ($tagOptions['sortorder'] ?? $this->params->get('sort_order', 'ascending'))));
 
@@ -291,6 +293,11 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 		$columns = max(1, (int) $columns);
 		$thumbHeight = max(32, (int) $thumbHeight);
 
+		if (!$this->IsValidLayout($layout))
+		{
+			$layout = 'grid';
+		}
+
 		if ($sort !== 'filename' && $sort !== 'date')
 		{
 			$sort = 'filename';
@@ -307,6 +314,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 			'columns' => $columns,
 			'thumbHeight' => $thumbHeight,
 			'showCaptions' => $showCaptions,
+			'layout' => $layout,
 			'sort' => $sort,
 			'sortOrder' => $sortOrder,
 		];
@@ -350,6 +358,32 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 		}
 
 		return $defaultValue;
+	}
+
+	/**
+	 * Checks whether a layout name is valid and available.
+	 *
+	 * @param[in] string $layoutName Layout name to validate.
+	 *
+	 * @return boolean
+	 */
+	private function IsValidLayout(string $layoutName): bool
+	{
+		$layoutName = strtolower(trim($layoutName));
+
+		if ($layoutName === '')
+		{
+			return false;
+		}
+
+		if (!preg_match('/^[a-z0-9_-]+$/', $layoutName))
+		{
+			return false;
+		}
+
+		$templatePath = __DIR__ . '/../../tmpl/' . $layoutName . '.php';
+
+		return is_file($templatePath);
 	}
 
 	/**
@@ -406,7 +440,13 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 
 		if (empty($imageFiles))
 		{
-			return '<div class="simplegallery-empty">No images found.</div>';
+			return $this->RenderTemplate(
+				(string) $options['layout'],
+				[
+					'columns' => (int) $options['columns'],
+					'items' => [],
+				]
+			);
 		}
 
 		$this->SortImageFiles(
@@ -415,12 +455,11 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 			(string) $options['sortOrder']
 		);
 
-		$html = [];
-		$html[] = '<div class="simplegallery-grid" style="--simplegallery-columns: ' . (int) $options['columns'] . ';">';
+		$items = [];
 
 		foreach ($imageFiles as $imagePath)
 		{
-			$cellHtml = $this->RenderImageCell(
+			$itemData = $this->BuildImageItemData(
 				$imagePath,
 				$publicFolderPath,
 				(int) $options['width'],
@@ -428,10 +467,10 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 				(bool) $options['showCaptions']
 			);
 
-			if ($cellHtml === '')
+			if ($itemData === null)
 			{
 				Log::add(
-					'Failed to render image cell for: ' . $imagePath,
+					'Failed to build image item data for: ' . $imagePath,
 					Log::WARNING,
 					'plg_content_simplegallery'
 				);
@@ -439,12 +478,16 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 				continue;
 			}
 
-			$html[] = '<div class="simplegallery-item">' . $cellHtml . '</div>';
+			$items[] = $itemData;
 		}
 
-		$html[] = '</div>';
-
-		return implode('', $html);
+		return $this->RenderTemplate(
+			(string) $options['layout'],
+			[
+				'columns' => (int) $options['columns'],
+				'items' => $items,
+			]
+		);
 	}
 
 	/**
@@ -574,7 +617,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 	}
 
 	/**
-	 * Renders a single image cell.
+	 * Builds the display data for a single image item.
 	 *
 	 * @param[in] string  $absoluteImagePath Absolute filesystem path to the image.
 	 * @param[in] string  $publicFolderPath  Public folder path relative to Joomla root.
@@ -582,15 +625,15 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 	 * @param[in] int     $thumbHeight       Thumbnail height.
 	 * @param[in] boolean $showCaptions      Whether captions should be shown.
 	 *
-	 * @return string
+	 * @return array<string, mixed>|null
 	 */
-	private function RenderImageCell(
+	private function BuildImageItemData(
 		string $absoluteImagePath,
 		string $publicFolderPath,
 		int $thumbWidth,
 		int $thumbHeight,
 		bool $showCaptions
-	): string
+	): ?array
 	{
 		$filename = basename($absoluteImagePath);
 
@@ -598,7 +641,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 		{
 			Log::add('Image file not found: ' . $absoluteImagePath, Log::WARNING, 'plg_content_simplegallery');
 
-			return '';
+			return null;
 		}
 
 		$fullImageRelativePath = trim($publicFolderPath, '/') . '/' . $filename;
@@ -614,7 +657,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 				'plg_content_simplegallery'
 			);
 
-			return '';
+			return null;
 		}
 
 		$thumbRelativePath = $this->AbsolutePathToRelativePath($thumbAbsolutePath);
@@ -627,24 +670,62 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 				'plg_content_simplegallery'
 			);
 
-			return '';
+			return null;
 		}
 
 		$thumbUrl = Uri::root() . str_replace('%2F', '/', rawurlencode($thumbRelativePath));
 		$caption = pathinfo($filename, PATHINFO_FILENAME);
-		$escapedCaption = htmlspecialchars($caption, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-		$html = [];
-		$html[] = '<a class="simplegallery-thumb-link" href="' . htmlspecialchars($fullImageUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" rel="Lightbox">';
-		$html[] = '<img class="simplegallery-thumb" src="' . htmlspecialchars($thumbUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" alt="' . $escapedCaption . '" loading="lazy">';
-		$html[] = '</a>';
+		return [
+			'filename' => $filename,
+			'caption' => $caption,
+			'fullImageUrl' => $fullImageUrl,
+			'thumbUrl' => $thumbUrl,
+			'showCaption' => $showCaptions,
+		];
+	}
 
-		if ($showCaptions)
+	/**
+	 * Renders a gallery template with prepared display data.
+	 *
+	 * @param[in] string               $layoutName  Template layout name.
+	 * @param[in] array<string, mixed> $displayData Prepared display data.
+	 *
+	 * @return string
+	 */
+	private function RenderTemplate(string $layoutName, array $displayData): string
+	{
+		if (!$this->IsValidLayout($layoutName))
 		{
-			$html[] = '<div class="simplegallery-caption">' . $escapedCaption . '</div>';
+			Log::add(
+				'Invalid or unavailable template layout requested: ' . $layoutName,
+				Log::ERROR,
+				'plg_content_simplegallery'
+			);
+
+			return '<!-- simplegallery: invalid template layout -->';
 		}
 
-		return implode('', $html);
+		$templatePath = __DIR__ . '/../../tmpl/' . $layoutName . '.php';
+
+		if (!is_file($templatePath))
+		{
+			Log::add(
+				'Template file not found: ' . $templatePath,
+				Log::ERROR,
+				'plg_content_simplegallery'
+			);
+
+			return '<!-- simplegallery: template not found -->';
+		}
+
+		ob_start();
+
+		extract(['displayData' => $displayData], EXTR_SKIP);
+
+		include $templatePath;
+
+		return (string) ob_get_clean();
 	}
 
 	/**

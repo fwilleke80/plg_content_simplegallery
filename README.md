@@ -29,7 +29,7 @@ Insert the gallery tag into your article:
 ### Example
 
 ```text
-{simplegallery folder="urlaub/spanien" columns="4" sort="name" sortorder="asc"}
+{simplegallery folder="urlaub/spanien" layout="grid" columns="4" sort="date" sortorder="descending"}
 ```
 
 ---
@@ -78,6 +78,7 @@ All parameters are optional except `folder`.
 | `spacing`          | Space between images (px)                | Plugin setting |
 | `sort`             | Sorting method: `name`, `date`, `random` | Plugin setting |
 | `sortorder`        | `asc` or `desc`                          | Plugin setting |
+| `layout`           | Layout template to use: `grid`, `slider` | Plugin setting |
 
 ---
 

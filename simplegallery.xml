@@ -7,7 +7,7 @@
 	<license>GNU General Public License version 2 or later; see LICENSE</license>
 	<authorEmail></authorEmail>
 	<authorUrl></authorUrl>
-	<version>1.1.0</version>
+	<version>1.1.4</version>
 	<description>PLG_CONTENT_SIMPLEGALLERY_XML_DESCRIPTION</description>
 	<namespace path="src">Joomla\Plugin\Content\Simplegallery</namespace>
 
@@ -16,6 +16,7 @@
 		<folder>src</folder>
 		<folder>language</folder>
 		<folder>media</folder>
+		<folder>tmpl</folder>
 		<filename>index.html</filename>
 	</files>
 
@@ -71,6 +72,17 @@
 				>
 					<option value="1">JYES</option>
 					<option value="0">JNO</option>
+				</field>
+
+				<field
+					name="layout"
+					type="list"
+					label="PLG_CONTENT_SIMPLEGALLERY_LAYOUT_LABEL"
+					description="PLG_CONTENT_SIMPLEGALLERY_LAYOUT_DESC"
+					default="grid"
+				>
+					<option value="grid">PLG_CONTENT_SIMPLEGALLERY_LAYOUT_GRID</option>
+					<option value="slider">PLG_CONTENT_SIMPLEGALLERY_LAYOUT_SLIDER</option>
 				</field>
 
 				<field
