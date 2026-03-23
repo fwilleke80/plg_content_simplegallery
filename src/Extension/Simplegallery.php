@@ -682,7 +682,11 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 		}
 
 		$thumbUrl = Uri::root() . str_replace('%2F', '/', rawurlencode($thumbRelativePath));
-		$caption = ucwords(str_replace('_', ' ', pathinfo($filename, PATHINFO_FILENAME)));
+
+		$caption = pathinfo($filename, PATHINFO_FILENAME);
+		$caption = urldecode($caption);
+		$caption = ucwords(trim(str_replace('_', ' ', $caption)));
+		$caption = htmlspecialchars($caption, ENT_QUOTES, 'UTF-8');
 
 		return [
 			'filename' => $filename,
