@@ -31,7 +31,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 	 *
 	 * @var boolean
 	 */
-	private static bool $cssInjected = false;
+	private static bool $assetsInjected = false;
 
 	/**
 	 * Returns the list of subscribed events.
@@ -107,7 +107,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 			'plg_content_simplegallery'
 		);
 
-		$this->InjectCss();
+		$this->InjectAssets();
 
 		$item->{$textProperty} = (string) preg_replace_callback(
 			'#\{simplegallery(?P<params>[^}]*)\}#i',
@@ -159,13 +159,13 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 	}
 
 	/**
-	 * Loads the gallery CSS via Joomla WebAssetManager.
+	 * Loads gallery CSS and JavaScript via Joomla WebAssetManager.
 	 *
 	 * @return void
 	 */
-	private function InjectCss(): void
+	private function InjectAssets(): void
 	{
-		if (self::$cssInjected)
+		if (self::$assetsInjected)
 		{
 			return;
 		}
@@ -185,7 +185,14 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 			'media/plg_content_simplegallery/css/simplegallery.css'
 		);
 
-		self::$cssInjected = true;
+		$wa->registerAndUseScript(
+			'plg_content_simplegallery',
+			'media/plg_content_simplegallery/js/simplegallery.js',
+			[],
+			['defer' => true]
+		);
+
+		self::$assetsInjected = true;
 	}
 
 	/**

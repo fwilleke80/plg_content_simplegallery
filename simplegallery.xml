@@ -22,11 +22,14 @@
 
 	<media destination="plg_content_simplegallery" folder="media">
 		<folder>css</folder>
+		<folder>js</folder>
 	</media>
 
 	<languages folder="language">
 		<language tag="en-GB">en-GB/en-GB.plg_content_simplegallery.ini</language>
 		<language tag="en-GB">en-GB/en-GB.plg_content_simplegallery.sys.ini</language>
+		<language tag="de-DE">de-DE/de-DE.plg_content_simplegallery.ini</language>
+		<language tag="de-DE">de-DE/de-DE.plg_content_simplegallery.sys.ini</language>
 	</languages>
 
 	<config>

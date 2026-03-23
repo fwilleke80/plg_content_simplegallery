@@ -14,7 +14,7 @@
  */
 
 $items = $displayData['items'] ?? [];
-$sliderId = 'simplegallery-slider-' . uniqid();
+$showNavigation = count($items) > 1;
 
 /**
  * Escapes a string for safe HTML output.
@@ -32,51 +32,63 @@ $e = static function (string $value): string
 <?php if (empty($items)) : ?>
 	<div class="simplegallery-empty">No images found.</div>
 <?php else : ?>
-	<div class="simplegallery-slider" id="<?= $e($sliderId); ?>">
-
-		<?php foreach ($items as $index => $item) : ?>
-			<input
-				type="radio"
-				name="<?= $e($sliderId); ?>"
-				id="<?= $e($sliderId . '-slide-' . $index); ?>"
-				class="simplegallery-slider-radio"
-				<?= $index === 0 ? 'checked="checked"' : ''; ?>
+	<div
+		class="simplegallery-slider"
+		data-simplegallery-slider
+		tabindex="0"
+	>
+		<div class="simplegallery-slider-main">
+			<button
+				type="button"
+				class="simplegallery-slider-arrow simplegallery-slider-arrow-prev"
+				aria-label="Previous image"
 			>
-		<?php endforeach; ?>
+				&#10094;
+			</button>
 
-		<div class="simplegallery-slider-viewport">
-			<div class="simplegallery-slider-track">
-				<?php foreach ($items as $index => $item) : ?>
-					<div class="simplegallery-slide">
-						<a
-							href="<?= $e((string) $item['fullImageUrl']); ?>"
-							rel="Lightbox"
-							class="simplegallery-slide-link"
-						>
-							<img
-								src="<?= $e((string) $item['thumbUrl']); ?>"
-								alt="<?= $e((string) $item['caption']); ?>"
-								class="simplegallery-slide-image"
+			<div class="simplegallery-slider-viewport">
+				<div class="simplegallery-slider-track">
+					<?php foreach ($items as $item) : ?>
+						<div class="simplegallery-slide">
+							<a
+								href="<?= $e((string) $item['fullImageUrl']); ?>"
+								rel="Lightbox"
+								class="simplegallery-slide-link"
 							>
-						</a>
+								<img
+									src="<?= $e((string) $item['thumbUrl']); ?>"
+									alt="<?= $e((string) $item['caption']); ?>"
+									class="simplegallery-slide-image"
+								>
+							</a>
 
-						<?php if (!empty($item['showCaption'])) : ?>
-							<div class="simplegallery-slide-caption">
-								<?= $e((string) $item['caption']); ?>
-							</div>
-						<?php endif; ?>
-					</div>
-				<?php endforeach; ?>
+							<?php if (!empty($item['showCaption'])) : ?>
+								<div class="simplegallery-slide-caption">
+									<?= $e((string) $item['caption']); ?>
+								</div>
+							<?php endif; ?>
+						</div>
+					<?php endforeach; ?>
+				</div>
 			</div>
+
+			<button
+				type="button"
+				class="simplegallery-slider-arrow simplegallery-slider-arrow-next"
+				aria-label="Next image"
+			>
+				&#10095;
+			</button>
 		</div>
 
 		<div class="simplegallery-slider-nav">
 			<?php foreach ($items as $index => $item) : ?>
-				<label
-					for="<?= $e($sliderId . '-slide-' . $index); ?>"
+				<button
+					type="button"
 					class="simplegallery-slider-dot"
+					data-slide-index="<?= $e((string) $index); ?>"
 					aria-label="<?= $e('Show slide ' . (string) ($index + 1)); ?>"
-				></label>
+				></button>
 			<?php endforeach; ?>
 		</div>
 	</div>
