@@ -36,7 +36,7 @@ Insert the gallery tag into your article:
 
 ## Folder Structure
 
-The `folder` parameter is relative to Joomla’s image directory.
+The `folder` parameter is relative to Joomla’s `image/stories` directory.
 
 ```text
 /images/stories/<folder>
