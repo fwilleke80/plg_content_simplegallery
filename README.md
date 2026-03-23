@@ -23,13 +23,13 @@ The plugin scans article content for `{simplegallery ...}` tags and replaces the
 Insert the gallery tag into your article:
 
 ```text
-{simplegallery folder="myfolder"}
+{simplegallery folder="vacation/spain"}
 ```
 
 ### Example
 
 ```text
-{simplegallery folder="urlaub/spanien" layout="grid" columns="4" sort="date" sortorder="descending"}
+{simplegallery folder="vacation/spain" layout="grid" columns="4" sort="date" sortorder="descending"}
 ```
 
 ---
@@ -75,7 +75,7 @@ All parameters are optional except `folder`.
 | `columns`      | Number of thumbnail columns              |
 | `width`        | Max. width of thumbnails (px)            |
 | `height`       | Max. height of thumbnails (px)           |
-| `sort`         | Sorting method: `name`, `date`.          |
+| `sort`         | Sorting method: `filename`, `date`.      |
 | `sortorder`    | `asc` or `desc`                          |
 | `layout`       | Layout template to use: `grid`, `slider` |
 | `showcaptions` | Set to display image captions            |
