@@ -10,8 +10,8 @@ The plugin scans article content for `{simplegallery ...}` tags and replaces the
 
 - Simple tag-based usage inside Joomla! articles
 - Automatic thumbnail generation and caching
-- Configurable gallery layout (columns, spacing, sizes)
-- Sorting options (name, date)
+- Configurable gallery layout (columns, thumbnail sizes)
+- Sorting options (name, date, random)
 - Caption support (from filename)
 - Lightweight and dependency-free (except optional Lightbox extension)
 - CSS loaded from external file for easy customization
@@ -26,17 +26,20 @@ Insert the gallery tag into your article:
 {simplegallery folder="vacation/spain"}
 ```
 
-### Example
+### Examples
+
+By providing arguments for the tag, the defaults from the plugin settings can be overridden:
 
 ```text
 {simplegallery folder="vacation/spain" layout="grid" columns="4" sort="date" sortorder="descending"}
+{simplegallery folder="vacation/spain" layout="slider" width="640" height="480" showcaptions}
 ```
 
 ---
 
 ## Folder Structure
 
-The `folder` parameter is relative to Joomla’s `image/stories` directory.
+The `folder` parameter is relative to Joomla's `image/stories` directory.
 
 ```text
 /images/stories/<folder>
@@ -70,15 +73,15 @@ All parameters are optional except `folder`.
 
 ### Optional
 
-| Parameter      | Description                              |
-|----------------|------------------------------------------|
-| `columns`      | Number of thumbnail columns              |
-| `width`        | Max. width of thumbnails (px)            |
-| `height`       | Max. height of thumbnails (px)           |
-| `sort`         | Sorting method: `filename`, `date`.      |
-| `sortorder`    | `asc` or `desc`                          |
-| `layout`       | Layout template to use: `grid`, `slider` |
-| `showcaptions` | Set to display image captions            |
+| Parameter      | Description                                  |
+|----------------|----------------------------------------------|
+| `columns`      | Number of thumbnail columns                  |
+| `width`        | Max. width of thumbnails (px)                |
+| `height`       | Max. height of thumbnails (px)               |
+| `sort`         | Sorting method: `filename`, `date`, `random` |
+| `sortorder`    | `ascending` or `descending`                  |
+| `layout`       | Layout template to use: `grid`, `slider`     |
+| `showcaptions` | Set to display image captions                |
 
 ---
 
@@ -102,12 +105,12 @@ This applies to all parameters (columns, sorting, sizes, etc.).
 ## Captions
 
 - Captions are derived from the image filename
-- Filename is cleaned (underscores and dashes replaced with spaces)
+- Filename is cleaned (underscores and dashes replaced with spaces, safe HTML characters and escaping)
 
 Example:
 
 ```text
-my_holiday-photo.jpg → "my holiday photo"
+my_holiday-photo.jpg → "My Holiday Photo"
 ```
 
 ---
@@ -122,6 +125,8 @@ It relies on external extensions such as:
 
 If installed and enabled, clicking an image will open it in a Lightbox automatically.
 
+This will work with all Lightbox extensions that work with `<a>` tags with `rel="Lightbox"`.
+
 ---
 
 ## CSS Customization
@@ -135,7 +140,6 @@ media/plg_content_simplegallery/css/simplegallery.css
 You can freely modify this file to:
 
 - Change layout appearance
-- Adjust spacing
 - Customize hover effects
 - Integrate with your site design
 
@@ -157,7 +161,7 @@ You can freely modify this file to:
 ## Limitations
 
 - Only supports local image folders
-- No EXIF-based sorting (currently filename/date only)
+- No EXIF-based sorting (currently filename/date/random only)
 
 ---
 

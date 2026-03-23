@@ -306,7 +306,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 			$layout = 'grid';
 		}
 
-		if ($sort !== 'filename' && $sort !== 'date')
+		if ($sort !== 'filename' && $sort !== 'date' && $sort !== 'random')
 		{
 			$sort = 'filename';
 		}
@@ -597,6 +597,13 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 	 */
 	private function SortImageFiles(array &$imageFiles, string $sort, string $sortOrder): void
 	{
+		if ($sort === 'random')
+		{
+			shuffle($imageFiles);
+
+			return;
+		}
+
 		usort(
 			$imageFiles,
 			function (string $left, string $right) use ($sort, $sortOrder): int
