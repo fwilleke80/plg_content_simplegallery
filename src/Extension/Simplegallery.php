@@ -194,6 +194,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 	 * Supported forms:
 	 * folder="urlaub/spanien"
 	 * width="320"
+	 * height="240"
 	 * columns="2"
 	 * layout="grid"
 	 * sort="date"
@@ -273,7 +274,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 
 		$width = $tagOptions['width'] ?? $this->params->get('thumb_width', 240);
 		$columns = $tagOptions['columns'] ?? $this->params->get('columns', 4);
-		$thumbHeight = $this->params->get('thumb_height', 180);
+		$height = $tagOptions['height'] ?? $this->params->get('thumb_height', 180);
 		$layout = strtolower(trim((string) ($tagOptions['layout'] ?? $this->params->get('layout', 'grid'))));
 		$sort = strtolower(trim((string) ($tagOptions['sort'] ?? $this->params->get('sort', 'filename'))));
 		$sortOrder = strtolower(trim((string) ($tagOptions['sortorder'] ?? $this->params->get('sort_order', 'ascending'))));
@@ -291,7 +292,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 
 		$width = max(32, (int) $width);
 		$columns = max(1, (int) $columns);
-		$thumbHeight = max(32, (int) $thumbHeight);
+		$height = max(32, (int) $height);
 
 		if (!$this->IsValidLayout($layout))
 		{
@@ -312,7 +313,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 			'folder' => $folder,
 			'width' => $width,
 			'columns' => $columns,
-			'thumbHeight' => $thumbHeight,
+			'height' => $height,
 			'showCaptions' => $showCaptions,
 			'layout' => $layout,
 			'sort' => $sort,
@@ -463,7 +464,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 				$imagePath,
 				$publicFolderPath,
 				(int) $options['width'],
-				(int) $options['thumbHeight'],
+				(int) $options['height'],
 				(bool) $options['showCaptions']
 			);
 
@@ -732,8 +733,8 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 	 * Creates or reuses a cached thumbnail for the given image.
 	 *
 	 * @param[in] string $absoluteImagePath Absolute source image path.
-	 * @param[in] int    $thumbWidth        Thumbnail width.
-	 * @param[in] int    $thumbHeight       Thumbnail height.
+	 * @param[in] int    $thumbWidth        Thumbnail width
+	 * @param[in] int    $thumbHeight       Thumbnail height
 	 *
 	 * @return string|null Absolute path to the thumbnail.
 	 */

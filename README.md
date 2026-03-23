@@ -62,23 +62,23 @@ All parameters are optional except `folder`.
 
 ### Required
 
-| Parameter | Description                                                           |
-|-----------|-----------------------------------------------------------------------|
-| `folder`  | Path to the image folder (relative to `/images` or `/images/stories`) |
+| Parameter | Description                                               |
+|-----------|-----------------------------------------------------------|
+| `folder`  | Path to the image folder (relative to `/images/stories`)  |
 
 ---
 
 ### Optional
 
-| Parameter          | Description                              | Default        |
-|--------------------|------------------------------------------|----------------|
-| `columns`          | Number of thumbnail columns              | Plugin setting |
-| `thumbnail_width`  | Width of thumbnails (px)                 | Plugin setting |
-| `thumbnail_height` | Height of thumbnails (px)                | Plugin setting |
-| `spacing`          | Space between images (px)                | Plugin setting |
-| `sort`             | Sorting method: `name`, `date`.          | Plugin setting |
-| `sortorder`        | `asc` or `desc`                          | Plugin setting |
-| `layout`           | Layout template to use: `grid`, `slider` | Plugin setting |
+| Parameter      | Description                              |
+|----------------|------------------------------------------|
+| `columns`      | Number of thumbnail columns              |
+| `width`        | Max. width of thumbnails (px)            |
+| `height`       | Max. height of thumbnails (px)           |
+| `sort`         | Sorting method: `name`, `date`.          |
+| `sortorder`    | `asc` or `desc`                          |
+| `layout`       | Layout template to use: `grid`, `slider` |
+| `showcaptions` | Set to display image captions            |
 
 ---
 
