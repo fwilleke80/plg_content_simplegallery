@@ -157,17 +157,7 @@ You can freely modify this file to:
 ## Limitations
 
 - Only supports local image folders
-- No built-in slider or carousel (grid layout only for now)
 - No EXIF-based sorting (currently filename/date only)
-
----
-
-## Planned Improvements
-
-- Template-based rendering system (grid, slider, carousel)
-- More flexible caption handling
-- Optional lazy loading
-- Better Lightbox integration
 
 ---
 
