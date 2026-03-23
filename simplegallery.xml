@@ -2,11 +2,11 @@
 <extension type="plugin" group="content" method="upgrade">
 	<name>PLG_CONTENT_SIMPLEGALLERY</name>
 	<author>Frank Willeke</author>
-	<creationDate>2026-03-21</creationDate>
+	<creationDate>2026-03-23</creationDate>
 	<copyright>(c) 2026 by Frank Willeke</copyright>
 	<license>GNU General Public License version 2 or later; see LICENSE</license>
-	<authorEmail></authorEmail>
-	<authorUrl></authorUrl>
+    <authorUrl>www.frankwilleke.com</authorUrl>
+    <authorEmail>joomla-plugins@frankwilleke.de</authorEmail>
 	<version>1.1.9</version>
 	<description>PLG_CONTENT_SIMPLEGALLERY_XML_DESCRIPTION</description>
 	<namespace path="src">Joomla\Plugin\Content\Simplegallery</namespace>
