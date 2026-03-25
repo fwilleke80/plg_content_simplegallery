@@ -57,14 +57,14 @@ $e = static function (string $value): string
 							>
 								<img
 									src="<?= $e((string) $item['thumbUrl']); ?>"
-									alt="<?= $e((string) $item['caption']); ?>"
+									alt="<?= $e((string) $item['captionText']); ?>"
 									class="simplegallery-slide-image"
 								>
 							</a>
 
 							<?php if (!empty($item['showCaption'])) : ?>
 								<div class="simplegallery-slide-caption">
-									<?= $e((string) $item['caption']); ?>
+									<?= (string) $item['captionHtml']; ?>
 								</div>
 							<?php endif; ?>
 						</div>

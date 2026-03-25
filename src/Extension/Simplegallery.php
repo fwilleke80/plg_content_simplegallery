@@ -690,18 +690,104 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 
 		$thumbUrl = Uri::root() . str_replace('%2F', '/', rawurlencode($thumbRelativePath));
 
-		$caption = pathinfo($filename, PATHINFO_FILENAME);
-		$caption = urldecode($caption);
-		$caption = ucwords(trim(str_replace('_', ' ', $caption)));
-		$caption = htmlspecialchars($caption, ENT_QUOTES, 'UTF-8');
+		$captionData = $this->ResolveCaptionData($absoluteImagePath);
 
 		return [
 			'filename' => $filename,
-			'caption' => $caption,
+			'captionHtml' => $captionData['html'],
+			'captionText' => $captionData['text'],
 			'fullImageUrl' => $fullImageUrl,
 			'thumbUrl' => $thumbUrl,
-			'showCaption' => $showCaptions,
+			'showCaption' => $showCaptions && $captionData['show'],
 		];
+	}
+
+	/**
+	 * Resolves caption data for a given image.
+	 *
+	 * Resolution order:
+	 * 1. image.jpg.txt  -> plain text caption
+	 * 2. fallback       -> caption derived from filename
+	 *
+	 * If a sidecar file exists but is empty, the caption is suppressed.
+	 *
+	 * @param[in] string $absoluteImagePath Absolute filesystem path to the image.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function ResolveCaptionData(string $absoluteImagePath): array
+	{
+		Log::add(
+			'ResolveCaptionData() called for image: ' . $absoluteImagePath,
+			Log::DEBUG,
+			'plg_content_simplegallery'
+		);
+
+		$txtSidecarPath = $absoluteImagePath . '.txt';
+
+		Log::add(
+			'Checking caption sidecar. TXT: ' . $txtSidecarPath . ' (' . (is_file($txtSidecarPath) ? 'exists' : 'missing') . ')',
+			Log::DEBUG,
+			'plg_content_simplegallery'
+		);
+
+		if (is_file($txtSidecarPath))
+		{
+			$content = trim((string) file_get_contents($txtSidecarPath));
+
+			if ($content === '')
+			{
+				Log::add(
+					'Caption sidecar exists but is empty, suppressing caption: ' . $txtSidecarPath,
+					Log::DEBUG,
+					'plg_content_simplegallery'
+				);
+				return [
+					'html' => '',
+					'text' => $this->BuildFilenameCaptionText($absoluteImagePath),
+					'show' => false,
+				];
+			}
+
+			$escapedContent = htmlspecialchars($content, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+			$escapedContent = nl2br($escapedContent);
+
+			Log::add(
+				'Using TXT caption sidecar: ' . $txtSidecarPath,
+				Log::DEBUG,
+				'plg_content_simplegallery'
+			);
+
+			return [
+				'html' => $escapedContent,
+				'text' => $content,
+				'show' => true,
+			];
+		}
+
+		$fallbackText = $this->BuildFilenameCaptionText($absoluteImagePath);
+
+		return [
+			'html' => htmlspecialchars($fallbackText, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+			'text' => $fallbackText,
+			'show' => true,
+		];
+	}
+
+	/**
+	 * Builds a fallback caption from the image filename.
+	 *
+	 * @param[in] string $absoluteImagePath Absolute filesystem path to the image.
+	 *
+	 * @return string
+	 */
+	private function BuildFilenameCaptionText(string $absoluteImagePath): string
+	{
+		$filename = pathinfo(basename($absoluteImagePath), PATHINFO_FILENAME);
+		$filename = urldecode($filename);
+		$filename = trim(str_replace('_', ' ', $filename));
+
+		return ucwords($filename);
 	}
 
 	/**

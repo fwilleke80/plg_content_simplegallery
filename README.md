@@ -93,6 +93,32 @@ This applies to all parameters (columns, sorting, sizes, etc.).
 
 ---
 
+### Caption sidecar files
+
+Simplegallery can optionally read captions from text files placed next to the image.
+
+For an image named:
+
+`IMG_12345.jpg`
+
+the plugin checks for:
+
+- `IMG_12345.jpg.txt`
+
+Resolution order:
+
+1. `.txt` sidecar → rendered as plain text
+2. no sidecar → caption is generated from the image filename
+
+If a sidecar file exists but is empty, the caption is suppressed completely.
+
+Example:
+
+- `IMG_12345.jpg.txt`  
+  Contains plain text caption content. Line breaks are preserved.
+
+---
+
 ## Thumbnail Handling
 
 - Thumbnails are generated automatically on first use
