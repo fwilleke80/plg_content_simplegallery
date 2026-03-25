@@ -93,6 +93,19 @@ This applies to all parameters (columns, sorting, sizes, etc.).
 
 ---
 
+## Captions
+
+- Captions are derived from the image filename
+- Filename is cleaned (underscores and dashes replaced with spaces, safe HTML characters and escaping)
+
+Example:
+
+```text
+my_holiday-photo.jpg → "My Holiday Photo"
+```
+
+---
+
 ### Caption sidecar files
 
 Simplegallery can optionally read captions from text files placed next to the image.
@@ -141,19 +154,6 @@ Otherwise, the file is treated as plain text.
 - Stored in a cache directory (inside Joomla’s filesystem)
 - Reused on subsequent page loads
 - Improves performance significantly for large galleries
-
----
-
-## Captions
-
-- Captions are derived from the image filename
-- Filename is cleaned (underscores and dashes replaced with spaces, safe HTML characters and escaping)
-
-Example:
-
-```text
-my_holiday-photo.jpg → "My Holiday Photo"
-```
 
 ---
 
