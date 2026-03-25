@@ -117,6 +117,22 @@ Example:
 - `IMG_12345.jpg.txt`  
   Contains plain text caption content. Line breaks are preserved.
 
+### HTML captions in .txt files
+
+You can include HTML in caption files by adding a special prefix.
+
+Example:
+
+```html
+!HTML
+<strong>Fence post</strong><br>
+<em>Neighbour's property</em>
+```
+
+If the first line of the `.txt` file is `!HTML`, the remaining content is rendered as raw HTML.
+
+Otherwise, the file is treated as plain text.
+
 ---
 
 ## Thumbnail Handling

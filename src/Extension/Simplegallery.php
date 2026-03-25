@@ -742,6 +742,7 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 					Log::DEBUG,
 					'plg_content_simplegallery'
 				);
+
 				return [
 					'html' => '',
 					'text' => $this->BuildFilenameCaptionText($absoluteImagePath),
@@ -749,11 +750,35 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 				];
 			}
 
+			// Detect !HTML prefix (first line)
+			$lines = preg_split('/\R/u', $content);
+			$firstLine = trim((string) ($lines[0] ?? ''));
+
+			if (strcasecmp($firstLine, '!HTML') === 0)
+			{
+				// Remove the first line
+				array_shift($lines);
+				$htmlContent = trim(implode("\n", $lines));
+
+				Log::add(
+					'Using TXT caption sidecar (HTML mode): ' . $txtSidecarPath,
+					Log::DEBUG,
+					'plg_content_simplegallery'
+				);
+
+				return [
+					'html' => $htmlContent,
+					'text' => trim(strip_tags($htmlContent)),
+					'show' => true,
+				];
+			}
+
+			// Default: plain text mode
 			$escapedContent = htmlspecialchars($content, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 			$escapedContent = nl2br($escapedContent);
 
 			Log::add(
-				'Using TXT caption sidecar: ' . $txtSidecarPath,
+				'Using TXT caption sidecar (plain text): ' . $txtSidecarPath,
 				Log::DEBUG,
 				'plg_content_simplegallery'
 			);
