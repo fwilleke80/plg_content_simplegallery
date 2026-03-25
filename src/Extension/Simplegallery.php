@@ -733,7 +733,24 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 
 		if (is_file($txtSidecarPath))
 		{
-			$content = trim((string) file_get_contents($txtSidecarPath));
+			$raw = file_get_contents($txtSidecarPath);
+
+			if ($raw === false)
+			{
+				Log::add(
+					'Failed to read caption sidecar: ' . $txtSidecarPath,
+					Log::WARNING,
+					'plg_content_simplegallery'
+				);
+
+				return [
+					'html' => '',
+					'text' => $this->BuildFilenameCaptionText($absoluteImagePath),
+					'show' => false,
+				];
+			}
+
+			$content = trim($raw);
 
 			if ($content === '')
 			{
@@ -766,9 +783,13 @@ final class Simplegallery extends CMSPlugin implements SubscriberInterface
 					'plg_content_simplegallery'
 				);
 
+				$text = preg_replace('/<\s*br\s*\/?>/i', "\n", $htmlContent);
+				$text = strip_tags($text);
+				$text = trim(preg_replace('/\s+/', ' ', $text));
+
 				return [
 					'html' => $htmlContent,
-					'text' => trim(strip_tags($htmlContent)),
+					'text' => $text,
 					'show' => true,
 				];
 			}
