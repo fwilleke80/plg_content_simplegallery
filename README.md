@@ -1,140 +1,252 @@
-# Simple Gallery Content Plugin for Joomla
+# Punga Simple Gallery
 
-A lightweight Joomla! content plugin that renders image galleries from a folder using a simple tag syntax.
+Punga Simple Gallery is a lightweight Joomla! 5/6 content plugin that renders image and video galleries from folders below Joomla's `/images` directory.
 
-The plugin scans article content for `{simplegallery ...}` tags and replaces them with a responsive image gallery, including automatic thumbnail generation and optional Lightbox support (via JCE MediaBox or similar extensions).
-
----
-
-## Features
-
-- Simple tag-based usage inside Joomla! articles
-- Automatic thumbnail generation and caching
-- Configurable gallery layout (columns, thumbnail sizes)
-- Sorting options (name, date, random)
-- Caption support (from filename)
-- Lightweight and dependency-free (except optional Lightbox extension)
-- CSS loaded from external file for easy customization
-
----
-
-## Usage
-
-Insert the gallery tag into your article:
-
-```text
-{simplegallery folder="vacation/spain"}
-```
-
-### Examples
-
-By providing arguments for the tag, the defaults from the plugin settings can be overridden:
-
-```text
-{simplegallery folder="vacation/spain" layout="grid" columns="4" sort="date" sortorder="descending"}
-{simplegallery folder="vacation/spain" layout="slider" width="640" height="480" showcaptions}
-```
-
----
-
-## Folder Structure
-
-The `folder` parameter is relative to Joomla's `image/stories` directory.
-
-```text
-/images/stories/<folder>
-```
-
-Example:
+It uses the existing content placeholder syntax:
 
 ```text
 {simplegallery folder="holiday/spain"}
 ```
 
-will resolve to:
+The plugin keeps existing `{simplegallery ...}` tags compatible while adding optional video support, an integrated image/video lightbox, and JSON metadata.
+
+## Features
+
+- Image galleries from local Joomla image folders
+- Optional video-only or mixed image/video galleries
+- Grid and slider layouts
+- Automatic thumbnail generation and caching
+- Video poster images
+- Built-in image/video lightbox
+- Keyboard and swipe navigation
+- Optional metadata in the lightbox
+- Folder-wide `gallery.json` metadata
+- Per-file JSON metadata sidecars
+- Existing `.txt` caption sidecars remain supported
+- External lightbox compatibility via `rel="Lightbox"`
+- English and German language files
+
+## Placeholder syntax
 
 ```text
-/images/stories/holiday/spain
+{simplegallery
+    folder="path/to/gallery"
+    columns="4"
+    width="240"
+    height="180"
+    showcaptions="true"
+    layout="grid"
+    sort="filename"
+    sortorder="ascending"
+    media="both"
+    lightbox="builtin"
+    showmetadata="true"
+}
 ```
 
----
+Only `folder` is required. Every other placeholder parameter overrides the corresponding plugin setting.
 
-## Tag Parameters
+Accepted aliases are also supported:
 
-All parameters are optional except `folder`.
+- `show_captions` = `showcaptions`
+- `sort_order` = `sortorder`
+- `show_metadata` = `showmetadata`
+- `media_types` = `media`
+- `lightbox_mode` = `lightbox`
 
-### Required
+## Media selection
 
-| Parameter | Description                                               |
-|-----------|-----------------------------------------------------------|
-| `folder`  | Path to the image folder (relative to `/images/stories`)  |
+The `media` parameter accepts:
 
----
+- `images`
+- `videos`
+- `both`
 
-### Optional
+The default remains `images` for backwards compatibility.
 
-| Parameter      | Description                                  |
-|----------------|----------------------------------------------|
-| `columns`      | Number of thumbnail columns                  |
-| `width`        | Max. width of thumbnails (px)                |
-| `height`       | Max. height of thumbnails (px)               |
-| `sort`         | Sorting method: `filename`, `date`, `random` |
-| `sortorder`    | `ascending` or `descending`                  |
-| `layout`       | Layout template to use: `grid`, `slider`     |
-| `showcaptions` | Set to display image captions                |
-
----
-
-## Defaults & Fallback Behavior
-
-If a parameter is **not specified in the tag**, the plugin uses the default value configured in the plugin settings.
-
-This applies to all parameters (columns, sorting, sizes, etc.).
-
----
-
-## Captions
-
-- Captions are derived from the image filename
-- Filename is cleaned (underscores and dashes replaced with spaces, safe HTML characters and escaping)
-
-Example:
+Supported image extensions:
 
 ```text
-my_holiday-photo.jpg → "My Holiday Photo"
+.jpg .jpeg .png .gif .webp
 ```
 
----
+Supported video extensions:
 
-### Caption sidecar files
+```text
+.mp4 .m4v .webm .ogv .ogg .mov
+```
 
-Simplegallery can optionally read captions from text files placed next to the image.
+Examples:
 
-For an image named:
+```text
+{simplegallery folder="garden" media="images"}
+{simplegallery folder="garden" media="videos"}
+{simplegallery folder="garden" media="both"}
+```
 
-`IMG_12345.jpg`
+## Lightbox modes
 
-the plugin checks for:
+`lightbox` accepts:
 
-- `IMG_12345.jpg.txt`
+- `builtin` — Punga Simple Gallery's integrated image/video viewer
+- `external` — emits the legacy `rel="Lightbox"` links for third-party lightboxes
+- `none` — ordinary links to the media files
 
-Resolution order:
+The built-in lightbox supports:
 
-1. `.txt` sidecar → rendered as plain text
-2. no sidecar → caption is generated from the image filename
+- images and HTML5 video
+- previous/next buttons
+- left/right arrow keys
+- Escape to close
+- touch/pointer swipes
+- focus trapping and focus restoration
+- adjacent image preloading
+- item title and description
+- optional metadata rows
 
-If a sidecar file exists but is empty, the caption is suppressed completely.
+## JSON metadata
 
-Example:
+Metadata is completely optional.
 
-- `IMG_12345.jpg.txt`  
-  Contains plain text caption content. Line breaks are preserved.
+For metadata covering a complete folder, add:
 
-### HTML captions in .txt files
+```text
+gallery.json
+```
 
-You can include HTML in caption files by adding a special prefix.
+A typical file looks like this:
 
-Example:
+```json
+{
+    ".": {
+        "title": "Garden, September 2026",
+        "description": "A few pictures and videos from the garden.",
+        "author": "Example Author",
+        "copyright": "© 2026 Example Author",
+        "location": "Braunschweig"
+    },
+
+    "some_image.jpg": {
+        "title": "The garden in September",
+        "description": "Looking towards the old chestnut tree.",
+        "date": "2026-09-18",
+        "alt": "View through the garden towards the chestnut tree"
+    },
+
+    "garden_walk.mp4": {
+        "title": "Walking through the garden",
+        "description": "A short walk through the rear garden.",
+        "poster": "garden_walk_poster.jpg"
+    }
+}
+```
+
+### The `.` entry
+
+The special `"."` entry contains metadata for the gallery/folder itself.
+
+These values are inherited by individual items:
+
+- `author`
+- `copyright`
+- `location`
+
+Gallery `title` and `description` describe the gallery itself and are **not** inherited by items.
+
+### Item metadata fields
+
+Supported item properties are:
+
+- `title`
+- `description`
+- `date`
+- `author`
+- `location`
+- `copyright`
+- `alt`
+- `poster` (videos only)
+
+All fields are optional.
+
+### Per-file JSON sidecars
+
+A media file may also have its own JSON file:
+
+```text
+some_image.jpg
+some_image.jpg.json
+
+garden_walk.mp4
+garden_walk.mp4.json
+```
+
+The sidecar contains only the item object:
+
+```json
+{
+    "title": "The garden in September",
+    "description": "Looking towards the old chestnut tree.",
+    "date": "2026-09-18",
+    "author": "Example Author",
+    "location": "Braunschweig",
+    "copyright": "© 2026 Example Author",
+    "alt": "View through the garden towards the chestnut tree"
+}
+```
+
+Metadata precedence is:
+
+```text
+automatically derived values
+→ inheritable values from "." in gallery.json
+→ matching file entry in gallery.json
+→ individual filename.ext.json sidecar
+```
+
+## Video posters
+
+A video poster can be specified explicitly:
+
+```json
+{
+    "garden_walk.mp4": {
+        "poster": "garden_walk_poster.jpg"
+    }
+}
+```
+
+If `poster` is omitted, the plugin looks for an automatic sidecar poster using the **complete video filename**:
+
+```text
+garden_walk.mp4.jpg
+garden_walk.mp4.png
+garden_walk.mp4.webp
+```
+
+Poster files used by videos are treated as auxiliary files and are not displayed as separate gallery items.
+
+If no poster is available, the gallery uses a neutral video tile with a play symbol and file type label.
+
+## Captions and legacy `.txt` sidecars
+
+The existing caption sidecar format remains supported:
+
+```text
+some_image.jpg.txt
+some_video.mp4.txt
+```
+
+Caption precedence for the gallery grid/slider is:
+
+1. `.txt` sidecar
+2. JSON `title`
+3. title generated from filename
+
+An empty `.txt` file suppresses the visible gallery caption completely.
+
+Plain text captions are HTML-escaped and preserve line breaks.
+
+Trusted HTML mode remains available by putting `!HTML` on the first line:
 
 ```html
 !HTML
@@ -142,77 +254,85 @@ Example:
 <em>Neighbour's property</em>
 ```
 
-If the first line of the `.txt` file is `!HTML`, the remaining content is rendered as raw HTML.
+The remaining content is then emitted as raw HTML, just as in previous plugin versions.
 
-Otherwise, the file is treated as plain text.
+## Metadata display
 
----
+Metadata is intended primarily for the built-in lightbox. It can be enabled independently from captions in the gallery grid/slider.
 
-## Thumbnail Handling
+The plugin settings let you choose which metadata rows should be shown when values exist:
 
-- Thumbnails are generated automatically on first use
-- Stored in a cache directory (inside Joomla’s filesystem)
-- Reused on subsequent page loads
-- Improves performance significantly for large galleries
+- date
+- author
+- location
+- copyright
+- image dimensions
+- file size
+- filename
 
----
+Image dimensions and file size are derived automatically. Empty values are omitted.
 
-## Lightbox Support
+`showmetadata="false"` can disable the metadata block for one gallery without disabling its title or description.
 
-The plugin itself does not implement a Lightbox.
+## Sorting
 
-It relies on external extensions such as:
+Supported sort modes are:
 
-- **System - JCE MediaBox 2**
+- `filename`
+- `date` — filesystem modification date
+- `random`
 
-If installed and enabled, clicking an image will open it in a Lightbox automatically.
+Sort order is:
 
-This will work with all Lightbox extensions that work with `<a>` tags with `rel="Lightbox"`.
+- `ascending`
+- `descending`
 
----
-
-## CSS Customization
-
-All styling is located in:
+Example:
 
 ```text
-media/plg_content_simplegallery/css/simplegallery.css
+{simplegallery folder="garden" sort="date" sortorder="descending"}
 ```
 
-You can freely modify this file to:
+## Folder resolution
 
-- Change layout appearance
-- Customize hover effects
-- Integrate with your site design
+`folder` is resolved below `/images` first and then below `/images/stories` for compatibility with older installations.
 
----
+For example:
 
-## How It Works (Technical Overview)
+```text
+{simplegallery folder="holiday/spain"}
+```
 
-1. `onContentPrepare()` scans article text
-2. Detects `{simplegallery ...}` tags
-3. Parses parameters from the tag
-4. Resolves folder and loads images
-5. Applies sorting and configuration
-6. Generates thumbnails if needed
-7. Renders HTML output
-8. Replaces the tag in the article
+may resolve to:
 
----
+```text
+/images/holiday/spain
+```
 
-## Limitations
+or, if that does not exist:
 
-- Only supports local image folders
-- No EXIF-based sorting (currently filename/date/random only)
+```text
+/images/stories/holiday/spain
+```
 
----
+Path traversal outside Joomla's image tree is rejected.
+
+## Thumbnail cache
+
+Image thumbnails and video poster thumbnails are generated on demand and cached. The default cache folder is:
+
+```text
+images/.simplegallery-cache
+```
+
+It can be changed in the plugin settings.
+
+## Plugin identity and upgrades
+
+The visible product name is **Punga Simple Gallery**.
+
+The Joomla plugin element remains `content/simplegallery` and the article placeholder remains `{simplegallery ...}` so the plugin upgrades the existing installation in place and existing content does not need to be changed.
 
 ## License
 
-MIT License (or whatever you choose)
-
----
-
-## Author
-
-Frank Willeke
+GNU General Public License version 2 or later. See `LICENSE`.

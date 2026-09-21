@@ -1,7 +1,7 @@
 <?php
 /**
  * @package     Joomla.Plugin
- * @subpackage  Content.Simplegallery
+ * @subpackage  Content.PungaSimpleGallery
  *
  * @copyright   (C) 2026
  * @license     GNU General Public License version 2 or later
@@ -15,7 +15,7 @@ use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use Joomla\Event\DispatcherInterface;
-use Joomla\Plugin\Content\Simplegallery\Extension\Simplegallery;
+use Punga\Plugin\Content\SimpleGallery\Extension\PungaSimpleGallery;
 
 return new class () implements ServiceProviderInterface
 {
@@ -35,8 +35,7 @@ return new class () implements ServiceProviderInterface
 				$config = (array) PluginHelper::getPlugin('content', 'simplegallery');
 				$dispatcher = $container->get(DispatcherInterface::class);
 				$application = Factory::getApplication();
-
-				$plugin = new Simplegallery($dispatcher, $config);
+				$plugin = new PungaSimpleGallery($dispatcher, $config);
 				$plugin->setApplication($application);
 
 				return $plugin;
