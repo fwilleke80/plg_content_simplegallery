@@ -1,13 +1,22 @@
 /**
- * Initializes all Punga Simple Gallery sliders and built-in lightboxes.
+ * Initializes all Punga Simple Gallery sliders and the built-in lightbox handler.
  *
  * @return {void}
  */
-document.addEventListener('DOMContentLoaded', function ()
+function InitializeSimpleGallery()
 {
 	InitializeSimpleGallerySliders();
 	InitializeSimpleGalleryLightboxes();
-});
+}
+
+if (document.readyState === 'loading')
+{
+	document.addEventListener('DOMContentLoaded', InitializeSimpleGallery, {once: true});
+}
+else
+{
+	InitializeSimpleGallery();
+}
 
 /**
  * Initializes slider layouts.
@@ -119,32 +128,56 @@ function InitializeSimpleGallerySliders()
 }
 
 /**
- * Initializes the built-in lightbox for all galleries on the page.
+ * Installs one delegated click handler for built-in lightbox links.
+ *
+ * Delegation makes the lightbox work even when a gallery is inserted after the
+ * initial DOMContentLoaded event. Capturing the event also prevents a third-party
+ * link handler from navigating before Punga Simple Gallery can open its viewer.
  *
  * @return {void}
  */
 function InitializeSimpleGalleryLightboxes()
 {
-	const galleries = document.querySelectorAll('.simplegallery-gallery[data-simplegallery-gallery]');
-
-	galleries.forEach(function (gallery)
+	if (document.documentElement.hasAttribute('data-simplegallery-lightbox-handler'))
 	{
-		const links = Array.from(gallery.querySelectorAll('a[data-simplegallery-item]'));
+		return;
+	}
 
-		if (links.length === 0)
+	document.documentElement.setAttribute('data-simplegallery-lightbox-handler', '1');
+
+	document.addEventListener('click', function (event)
+	{
+		if (!(event.target instanceof Element))
 		{
 			return;
 		}
 
-		links.forEach(function (link, index)
+		const link = event.target.closest('a[data-simplegallery-item]');
+
+		if (!link)
 		{
-			link.addEventListener('click', function (event)
-			{
-				event.preventDefault();
-				OpenSimpleGalleryLightbox(gallery, links, index, link);
-			});
-		});
-	});
+			return;
+		}
+
+		const gallery = link.closest('.simplegallery-gallery[data-simplegallery-gallery]');
+
+		if (!gallery)
+		{
+			return;
+		}
+
+		const links = Array.from(gallery.querySelectorAll('a[data-simplegallery-item]'));
+		const index = links.indexOf(link);
+
+		if (index < 0)
+		{
+			return;
+		}
+
+		event.preventDefault();
+		event.stopPropagation();
+		OpenSimpleGalleryLightbox(gallery, links, index, link);
+	}, true);
 }
 
 /**
@@ -181,7 +214,10 @@ function OpenSimpleGalleryLightbox(gallery, links, startIndex, returnFocus)
 	overlay.className = 'simplegallery-lightbox';
 	overlay.setAttribute('data-simplegallery-lightbox', '');
 
-	dialog.className = 'simplegallery-lightbox-dialog';
+	const infoPosition = ['side', 'below', 'none'].includes(gallery.dataset.simplegalleryInfoPosition)
+		? gallery.dataset.simplegalleryInfoPosition
+		: 'side';
+	dialog.className = 'simplegallery-lightbox-dialog simplegallery-lightbox-info-' + infoPosition;
 	dialog.setAttribute('role', 'dialog');
 	dialog.setAttribute('aria-modal', 'true');
 	dialog.setAttribute('aria-label', dialogLabel);
@@ -190,6 +226,7 @@ function OpenSimpleGalleryLightbox(gallery, links, startIndex, returnFocus)
 	stage.className = 'simplegallery-lightbox-stage';
 	mediaContainer.className = 'simplegallery-lightbox-media';
 	info.className = 'simplegallery-lightbox-info';
+	info.hidden = infoPosition === 'none';
 	galleryLabel.className = 'simplegallery-lightbox-gallery-title';
 	title.className = 'simplegallery-lightbox-title';
 	description.className = 'simplegallery-lightbox-description';

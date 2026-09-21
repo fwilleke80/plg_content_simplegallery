@@ -163,13 +163,14 @@ final class PungaSimpleGallery extends CMSPlugin implements SubscriberInterface
 
 		$wa->registerAndUseStyle(
 			'plg_content_simplegallery',
-			'media/plg_content_simplegallery/css/simplegallery.css'
+			'media/plg_content_simplegallery/css/simplegallery.css',
+			['version' => '1.3.4']
 		);
 
 		$wa->registerAndUseScript(
 			'plg_content_simplegallery',
 			'media/plg_content_simplegallery/js/simplegallery.js',
-			[],
+			['version' => '1.3.4'],
 			['defer' => true]
 		);
 
@@ -247,11 +248,14 @@ final class PungaSimpleGallery extends CMSPlugin implements SubscriberInterface
 	private function NormalizeTagOptions(array $tagOptions): array
 	{
 		$aliases = [
+			'thumb_width' => 'width',
+			'thumb_height' => 'height',
 			'show_captions' => 'showcaptions',
 			'sort_order' => 'sortorder',
-			'show_metadata' => 'showmetadata',
 			'media_types' => 'media',
 			'lightbox_mode' => 'lightbox',
+			'show_lightbox_metadata' => 'showmetadata',
+			'show_metadata' => 'showmetadata',
 		];
 
 		foreach ($aliases as $alias => $canonical)
@@ -292,11 +296,22 @@ final class PungaSimpleGallery extends CMSPlugin implements SubscriberInterface
 			'showcaptions',
 			$this->ToBoolean($this->params->get('show_captions', 0), false)
 		);
-		$showMetadata = $this->ResolveBooleanOption(
-			$tagOptions,
-			'showmetadata',
-			$this->ToBoolean($this->params->get('show_lightbox_metadata', 1), true)
-		);
+		$lightboxInfoPosition = strtolower(trim((string) $this->params->get('lightbox_info_position', '')));
+
+		if (!\in_array($lightboxInfoPosition, ['side', 'below', 'none'], true))
+		{
+			$legacyShowMetadata = $this->ToBoolean($this->params->get('show_lightbox_metadata', 1), true);
+			$lightboxInfoPosition = $legacyShowMetadata ? 'side' : 'none';
+		}
+
+		$showMetadata = true;
+
+		if (array_key_exists('showmetadata', $tagOptions))
+		{
+			$showMetadata = $this->ToBoolean($tagOptions['showmetadata'], true);
+		}
+
+		$readExifMetadata = $this->ToBoolean($this->params->get('read_exif_metadata', 0), false);
 
 		if (!$this->IsValidLayout($layout))
 		{
@@ -333,8 +348,10 @@ final class PungaSimpleGallery extends CMSPlugin implements SubscriberInterface
 			'sortOrder' => $sortOrder,
 			'media' => $media,
 			'lightbox' => $lightbox,
+			'lightboxInfoPosition' => $lightboxInfoPosition,
 			'showCaptions' => $showCaptions,
 			'showMetadata' => $showMetadata,
+			'readExifMetadata' => $readExifMetadata,
 			'metadataFields' => $this->ResolveMetadataFields(),
 		];
 	}
@@ -377,7 +394,7 @@ final class PungaSimpleGallery extends CMSPlugin implements SubscriberInterface
 			return [];
 		}
 
-		$allowed = ['date', 'author', 'location', 'copyright', 'dimensions', 'filesize', 'filename'];
+		$allowed = ['date', 'author', 'location', 'copyright', 'dimensions', 'filesize', 'filename', 'camera', 'lens', 'exposure', 'aperture', 'iso', 'focal_length'];
 		$result = [];
 
 		foreach ($value as $field)
@@ -490,7 +507,7 @@ final class PungaSimpleGallery extends CMSPlugin implements SubscriberInterface
 		foreach ($allMediaFiles as $mediaPath)
 		{
 			$filename = basename($mediaPath);
-			$metadataByFilename[$filename] = $this->ResolveItemMetadata($mediaPath, $galleryMetadata);
+			$metadataByFilename[$filename] = $this->ResolveItemMetadata($mediaPath, $galleryMetadata, (bool) $options['readExifMetadata']);
 
 			if ($this->DetectMediaType($mediaPath) === 'video')
 			{
@@ -532,7 +549,7 @@ final class PungaSimpleGallery extends CMSPlugin implements SubscriberInterface
 		foreach ($mediaFiles as $mediaPath)
 		{
 			$filename = basename($mediaPath);
-			$metadata = $metadataByFilename[$filename] ?? $this->ResolveItemMetadata($mediaPath, $galleryMetadata);
+			$metadata = $metadataByFilename[$filename] ?? $this->ResolveItemMetadata($mediaPath, $galleryMetadata, (bool) $options['readExifMetadata']);
 			$itemData = $this->BuildMediaItemData(
 				$mediaPath,
 				$absoluteFolder,
@@ -559,6 +576,7 @@ final class PungaSimpleGallery extends CMSPlugin implements SubscriberInterface
 				'columns' => (int) $options['columns'],
 				'items' => $items,
 				'lightboxMode' => (string) $options['lightbox'],
+				'lightboxInfoPosition' => (string) $options['lightboxInfoPosition'],
 				'galleryTitle' => trim((string) ($galleryMetadata['gallery']['title'] ?? '')),
 				'galleryDescription' => trim((string) ($galleryMetadata['gallery']['description'] ?? '')),
 			]
@@ -770,7 +788,7 @@ final class PungaSimpleGallery extends CMSPlugin implements SubscriberInterface
 	private function NormalizeMetadataObject(array $metadata): array
 	{
 		$result = [];
-		$allowed = ['title', 'description', 'date', 'author', 'location', 'copyright', 'alt', 'poster'];
+		$allowed = ['title', 'description', 'date', 'author', 'location', 'copyright', 'alt', 'poster', 'camera', 'lens', 'exposure', 'aperture', 'iso', 'focal_length'];
 
 		foreach ($allowed as $field)
 		{
@@ -793,15 +811,21 @@ final class PungaSimpleGallery extends CMSPlugin implements SubscriberInterface
 	 *
 	 * @param[in] string                                                                    $absoluteMediaPath Media file path.
 	 * @param[in] array{gallery: array<string, mixed>, items: array<string, array<string, mixed>>} $galleryMetadata Gallery metadata.
+	 * @param[in] boolean                                                                   $readExifMetadata Whether safe EXIF fields should be read.
 	 *
 	 * @return array<string, mixed>
 	 */
-	private function ResolveItemMetadata(string $absoluteMediaPath, array $galleryMetadata): array
+	private function ResolveItemMetadata(string $absoluteMediaPath, array $galleryMetadata, bool $readExifMetadata): array
 	{
 		$filename = basename($absoluteMediaPath);
 		$metadata = [
 			'title' => $this->BuildFilenameCaptionText($absoluteMediaPath),
 		];
+
+		if ($readExifMetadata && $this->DetectMediaType($absoluteMediaPath) === 'image')
+		{
+			$metadata = array_replace($metadata, $this->ReadExifMetadata($absoluteMediaPath));
+		}
 
 		foreach (self::INHERITED_GALLERY_METADATA_FIELDS as $field)
 		{
@@ -831,6 +855,201 @@ final class PungaSimpleGallery extends CMSPlugin implements SubscriberInterface
 		}
 
 		return $metadata;
+	}
+
+
+	/**
+	 * Reads a conservative subset of EXIF metadata from a JPEG image.
+	 *
+	 * GPS sections are deliberately not requested or exposed.
+	 *
+	 * @param[in] string $absoluteImagePath Absolute image path.
+	 *
+	 * @return array<string, string>
+	 */
+	private function ReadExifMetadata(string $absoluteImagePath): array
+	{
+		if (!\function_exists('exif_read_data'))
+		{
+			return [];
+		}
+
+		$extension = strtolower((string) pathinfo($absoluteImagePath, PATHINFO_EXTENSION));
+
+		if (!\in_array($extension, ['jpg', 'jpeg'], true))
+		{
+			return [];
+		}
+
+		$data = @exif_read_data($absoluteImagePath, 'IFD0,EXIF', true, false);
+
+		if (!\is_array($data))
+		{
+			return [];
+		}
+
+		$ifd0 = isset($data['IFD0']) && \is_array($data['IFD0']) ? $data['IFD0'] : [];
+		$exif = isset($data['EXIF']) && \is_array($data['EXIF']) ? $data['EXIF'] : [];
+		$result = [];
+		$date = $this->FirstExifValue([$exif, $ifd0], ['DateTimeOriginal', 'DateTimeDigitized', 'DateTime']);
+
+		if ($date !== '')
+		{
+			$result['date'] = preg_replace('/^(\\d{4}):(\\d{2}):(\\d{2})/', '$1-$2-$3', $date) ?? $date;
+		}
+
+		$author = $this->FirstExifValue([$ifd0, $exif], ['Artist', 'Author']);
+
+		if ($author !== '')
+		{
+			$result['author'] = $author;
+		}
+
+		$copyright = $this->FirstExifValue([$ifd0, $exif], ['Copyright']);
+
+		if ($copyright !== '')
+		{
+			$result['copyright'] = $copyright;
+		}
+
+		$make = $this->FirstExifValue([$ifd0], ['Make']);
+		$model = $this->FirstExifValue([$ifd0], ['Model']);
+		$camera = $model;
+
+		if ($make !== '' && $model !== '' && stripos($model, $make) !== 0)
+		{
+			$camera = trim($make . ' ' . $model);
+		}
+		elseif ($camera === '')
+		{
+			$camera = $make;
+		}
+
+		if ($camera !== '')
+		{
+			$result['camera'] = $camera;
+		}
+
+		$lens = $this->FirstExifValue([$exif, $ifd0], ['LensModel', 'UndefinedTag:0xA434']);
+
+		if ($lens !== '')
+		{
+			$result['lens'] = $lens;
+		}
+
+		$exposure = $this->FirstExifValue([$exif, $ifd0], ['ExposureTime']);
+
+		if ($exposure !== '')
+		{
+			$result['exposure'] = rtrim($exposure) . ' s';
+		}
+
+		$aperture = $this->ExifRationalToFloat($this->FirstExifValue([$exif, $ifd0], ['FNumber']));
+
+		if ($aperture !== null)
+		{
+			$result['aperture'] = 'f/' . rtrim(rtrim(number_format($aperture, 1, '.', ''), '0'), '.');
+		}
+
+		$iso = $this->FirstExifValue([$exif, $ifd0], ['PhotographicSensitivity', 'ISOSpeedRatings']);
+
+		if ($iso !== '')
+		{
+			$result['iso'] = $iso;
+		}
+
+		$focalLength = $this->ExifRationalToFloat($this->FirstExifValue([$exif, $ifd0], ['FocalLength']));
+
+		if ($focalLength !== null)
+		{
+			$result['focal_length'] = rtrim(rtrim(number_format($focalLength, 1, '.', ''), '0'), '.') . ' mm';
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Returns the first usable scalar value from EXIF sections and keys.
+	 *
+	 * @param[in] array<int, array<string, mixed>> $sections EXIF sections.
+	 * @param[in] array<int, string>               $keys     Candidate keys.
+	 *
+	 * @return string
+	 */
+	private function FirstExifValue(array $sections, array $keys): string
+	{
+		foreach ($sections as $section)
+		{
+			foreach ($keys as $key)
+			{
+				if (!array_key_exists($key, $section))
+				{
+					continue;
+				}
+
+				$value = $section[$key];
+
+				if (\is_array($value))
+				{
+					$parts = array_values($value);
+
+					if (count($parts) >= 2 && is_numeric($parts[0]) && is_numeric($parts[1]))
+					{
+						$value = (string) $parts[0] . '/' . (string) $parts[1];
+					}
+					else
+					{
+						$value = reset($value);
+					}
+				}
+
+				if (!\is_scalar($value))
+				{
+					continue;
+				}
+
+				$text = trim((string) $value);
+
+				if ($text !== '')
+				{
+					return $text;
+				}
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Converts an EXIF rational or decimal string to a floating-point value.
+	 *
+	 * @param[in] string $value EXIF numeric value.
+	 *
+	 * @return float|null
+	 */
+	private function ExifRationalToFloat(string $value): ?float
+	{
+		$value = trim($value);
+
+		if ($value === '')
+		{
+			return null;
+		}
+
+		if (str_contains($value, '/'))
+		{
+			[$numerator, $denominator] = array_pad(explode('/', $value, 2), 2, '0');
+			$denominatorValue = (float) $denominator;
+
+			if ($denominatorValue == 0.0)
+			{
+				return null;
+			}
+
+			return (float) $numerator / $denominatorValue;
+		}
+
+		return is_numeric($value) ? (float) $value : null;
 	}
 
 	/**
@@ -1181,6 +1400,12 @@ final class PungaSimpleGallery extends CMSPlugin implements SubscriberInterface
 			'dimensions' => $dimensions,
 			'filesize' => $fileSizeText,
 			'filename' => $filename,
+			'camera' => trim((string) ($metadata['camera'] ?? '')),
+			'lens' => trim((string) ($metadata['lens'] ?? '')),
+			'exposure' => trim((string) ($metadata['exposure'] ?? '')),
+			'aperture' => trim((string) ($metadata['aperture'] ?? '')),
+			'iso' => trim((string) ($metadata['iso'] ?? '')),
+			'focal_length' => trim((string) ($metadata['focal_length'] ?? '')),
 		];
 		$labels = [
 			'date' => Text::_('PLG_CONTENT_SIMPLEGALLERY_METADATA_DATE'),
@@ -1190,6 +1415,12 @@ final class PungaSimpleGallery extends CMSPlugin implements SubscriberInterface
 			'dimensions' => Text::_('PLG_CONTENT_SIMPLEGALLERY_METADATA_DIMENSIONS'),
 			'filesize' => Text::_('PLG_CONTENT_SIMPLEGALLERY_METADATA_FILESIZE'),
 			'filename' => Text::_('PLG_CONTENT_SIMPLEGALLERY_METADATA_FILENAME'),
+			'camera' => Text::_('PLG_CONTENT_SIMPLEGALLERY_METADATA_CAMERA'),
+			'lens' => Text::_('PLG_CONTENT_SIMPLEGALLERY_METADATA_LENS'),
+			'exposure' => Text::_('PLG_CONTENT_SIMPLEGALLERY_METADATA_EXPOSURE'),
+			'aperture' => Text::_('PLG_CONTENT_SIMPLEGALLERY_METADATA_APERTURE'),
+			'iso' => Text::_('PLG_CONTENT_SIMPLEGALLERY_METADATA_ISO'),
+			'focal_length' => Text::_('PLG_CONTENT_SIMPLEGALLERY_METADATA_FOCAL_LENGTH'),
 		];
 		$result = [];
 

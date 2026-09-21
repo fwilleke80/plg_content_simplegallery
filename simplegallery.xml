@@ -7,7 +7,7 @@
 	<license>GNU General Public License version 2 or later; see LICENSE</license>
 	<authorUrl>www.frankwilleke.com</authorUrl>
 	<authorEmail>joomla-plugins@frankwilleke.de</authorEmail>
-	<version>1.3.0</version>
+	<version>1.3.4</version>
 	<description>PLG_CONTENT_SIMPLEGALLERY_XML_DESCRIPTION</description>
 	<namespace path="src">Punga\Plugin\Content\SimpleGallery</namespace>
 	<targetplatform name="joomla" version="5\.0|6\.0" />
@@ -37,7 +37,13 @@
 
 	<config>
 		<fields name="params">
-			<fieldset name="basic" label="PLG_CONTENT_SIMPLEGALLERY_FIELDSET_GALLERY">
+			<fieldset name="basic">
+				<field
+					name="section_gallery"
+					type="spacer"
+					label="PLG_CONTENT_SIMPLEGALLERY_FIELDSET_GALLERY"
+				/>
+
 				<field
 					name="columns"
 					type="number"
@@ -74,7 +80,7 @@
 					label="PLG_CONTENT_SIMPLEGALLERY_SHOW_CAPTIONS_LABEL"
 					description="PLG_CONTENT_SIMPLEGALLERY_SHOW_CAPTIONS_DESC"
 					default="0"
-					class="btn-group btn-group-yesno"
+					layout="joomla.form.field.radio.switcher"
 				>
 					<option value="1">JYES</option>
 					<option value="0">JNO</option>
@@ -113,9 +119,13 @@
 					<option value="ascending">PLG_CONTENT_SIMPLEGALLERY_SORT_ORDER_ASCENDING</option>
 					<option value="descending">PLG_CONTENT_SIMPLEGALLERY_SORT_ORDER_DESCENDING</option>
 				</field>
-			</fieldset>
 
-			<fieldset name="media" label="PLG_CONTENT_SIMPLEGALLERY_FIELDSET_MEDIA">
+				<field
+					name="section_media"
+					type="spacer"
+					label="PLG_CONTENT_SIMPLEGALLERY_FIELDSET_MEDIA"
+				/>
+
 				<field
 					name="media_types"
 					type="list"
@@ -127,9 +137,13 @@
 					<option value="videos">PLG_CONTENT_SIMPLEGALLERY_MEDIA_VIDEOS</option>
 					<option value="both">PLG_CONTENT_SIMPLEGALLERY_MEDIA_BOTH</option>
 				</field>
-			</fieldset>
 
-			<fieldset name="lightbox" label="PLG_CONTENT_SIMPLEGALLERY_FIELDSET_LIGHTBOX">
+				<field
+					name="section_lightbox"
+					type="spacer"
+					label="PLG_CONTENT_SIMPLEGALLERY_FIELDSET_LIGHTBOX"
+				/>
+
 				<field
 					name="lightbox_mode"
 					type="list"
@@ -143,16 +157,16 @@
 				</field>
 
 				<field
-					name="show_lightbox_metadata"
-					type="radio"
-					label="PLG_CONTENT_SIMPLEGALLERY_SHOW_LIGHTBOX_METADATA_LABEL"
-					description="PLG_CONTENT_SIMPLEGALLERY_SHOW_LIGHTBOX_METADATA_DESC"
-					default="1"
-					class="btn-group btn-group-yesno"
+					name="lightbox_info_position"
+					type="list"
+					label="PLG_CONTENT_SIMPLEGALLERY_LIGHTBOX_INFO_POSITION_LABEL"
+					description="PLG_CONTENT_SIMPLEGALLERY_LIGHTBOX_INFO_POSITION_DESC"
+					default="side"
 					showon="lightbox_mode:builtin"
 				>
-					<option value="1">JYES</option>
-					<option value="0">JNO</option>
+					<option value="side">PLG_CONTENT_SIMPLEGALLERY_LIGHTBOX_INFO_SIDE</option>
+					<option value="below">PLG_CONTENT_SIMPLEGALLERY_LIGHTBOX_INFO_BELOW</option>
+					<option value="none">PLG_CONTENT_SIMPLEGALLERY_LIGHTBOX_INFO_NONE</option>
 				</field>
 
 				<field
@@ -161,7 +175,7 @@
 					label="PLG_CONTENT_SIMPLEGALLERY_METADATA_FIELDS_LABEL"
 					description="PLG_CONTENT_SIMPLEGALLERY_METADATA_FIELDS_DESC"
 					default="date,author,location,copyright,dimensions,filesize"
-					showon="lightbox_mode:builtin[AND]show_lightbox_metadata:1"
+					showon="lightbox_mode:builtin"
 				>
 					<option value="date">PLG_CONTENT_SIMPLEGALLERY_METADATA_DATE</option>
 					<option value="author">PLG_CONTENT_SIMPLEGALLERY_METADATA_AUTHOR</option>
@@ -170,10 +184,33 @@
 					<option value="dimensions">PLG_CONTENT_SIMPLEGALLERY_METADATA_DIMENSIONS</option>
 					<option value="filesize">PLG_CONTENT_SIMPLEGALLERY_METADATA_FILESIZE</option>
 					<option value="filename">PLG_CONTENT_SIMPLEGALLERY_METADATA_FILENAME</option>
+					<option value="camera">PLG_CONTENT_SIMPLEGALLERY_METADATA_CAMERA</option>
+					<option value="lens">PLG_CONTENT_SIMPLEGALLERY_METADATA_LENS</option>
+					<option value="exposure">PLG_CONTENT_SIMPLEGALLERY_METADATA_EXPOSURE</option>
+					<option value="aperture">PLG_CONTENT_SIMPLEGALLERY_METADATA_APERTURE</option>
+					<option value="iso">PLG_CONTENT_SIMPLEGALLERY_METADATA_ISO</option>
+					<option value="focal_length">PLG_CONTENT_SIMPLEGALLERY_METADATA_FOCAL_LENGTH</option>
 				</field>
-			</fieldset>
 
-			<fieldset name="advanced" label="PLG_CONTENT_SIMPLEGALLERY_FIELDSET_ADVANCED">
+				<field
+					name="read_exif_metadata"
+					type="radio"
+					label="PLG_CONTENT_SIMPLEGALLERY_READ_EXIF_METADATA_LABEL"
+					description="PLG_CONTENT_SIMPLEGALLERY_READ_EXIF_METADATA_DESC"
+					default="0"
+					layout="joomla.form.field.radio.switcher"
+					showon="lightbox_mode:builtin"
+				>
+					<option value="1">JYES</option>
+					<option value="0">JNO</option>
+				</field>
+
+				<field
+					name="section_advanced"
+					type="spacer"
+					label="PLG_CONTENT_SIMPLEGALLERY_FIELDSET_ADVANCED"
+				/>
+
 				<field
 					name="cache_folder"
 					type="text"

@@ -18,6 +18,7 @@ use Joomla\CMS\Language\Text;
 $items = $displayData['items'] ?? [];
 $showNavigation = count($items) > 1;
 $lightboxMode = (string) ($displayData['lightboxMode'] ?? 'builtin');
+$lightboxInfoPosition = (string) ($displayData['lightboxInfoPosition'] ?? 'side');
 $galleryTitle = trim((string) ($displayData['galleryTitle'] ?? ''));
 
 /**
@@ -40,6 +41,7 @@ $e = static function (string $value): string
 	data-simplegallery-label-previous="<?= $e(Text::_('PLG_CONTENT_SIMPLEGALLERY_PREVIOUS_ITEM')); ?>"
 	data-simplegallery-label-next="<?= $e(Text::_('PLG_CONTENT_SIMPLEGALLERY_NEXT_ITEM')); ?>"
 	data-simplegallery-label-dialog="<?= $e(Text::_('PLG_CONTENT_SIMPLEGALLERY_LIGHTBOX_DIALOG')); ?>"
+	data-simplegallery-info-position="<?= $e($lightboxInfoPosition); ?>"
 	<?php if ($galleryTitle !== '') : ?>aria-label="<?= $e($galleryTitle); ?>"<?php endif; ?>
 >
 	<?php if (empty($items)) : ?>

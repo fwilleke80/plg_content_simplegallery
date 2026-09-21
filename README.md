@@ -8,8 +8,6 @@ It uses the existing content placeholder syntax:
 {simplegallery folder="holiday/spain"}
 ```
 
-The plugin keeps existing `{simplegallery ...}` tags compatible while adding optional video support, an integrated image/video lightbox, and JSON metadata.
-
 ## Features
 
 - Image galleries from local Joomla image folders
@@ -19,7 +17,8 @@ The plugin keeps existing `{simplegallery ...}` tags compatible while adding opt
 - Video poster images
 - Built-in image/video lightbox
 - Keyboard and swipe navigation
-- Optional metadata in the lightbox
+- Lightbox information beside the media, below it, or hidden
+- Optional JSON/file metadata and safe EXIF metadata in the lightbox
 - Folder-wide `gallery.json` metadata
 - Per-file JSON metadata sidecars
 - Existing `.txt` caption sidecars remain supported
@@ -46,13 +45,18 @@ The plugin keeps existing `{simplegallery ...}` tags compatible while adding opt
 
 Only `folder` is required. Every other placeholder parameter overrides the corresponding plugin setting.
 
-Accepted aliases are also supported:
+The canonical placeholder parameter names are `folder`, `columns`, `width`, `height`, `showcaptions`, `layout`, `sort`, `sortorder`, `media`, `lightbox`, and `showmetadata`. Parameter names are case-insensitive.
 
+For compatibility and convenience, these alternative spellings are also accepted:
+
+- `thumb_width` = `width`
+- `thumb_height` = `height`
 - `show_captions` = `showcaptions`
 - `sort_order` = `sortorder`
-- `show_metadata` = `showmetadata`
 - `media_types` = `media`
 - `lightbox_mode` = `lightbox`
+- `show_lightbox_metadata` = `showmetadata`
+- `show_metadata` = `showmetadata`
 
 ## Media selection
 
@@ -103,6 +107,10 @@ The built-in lightbox supports:
 - adjacent image preloading
 - item title and description
 - optional metadata rows
+
+The plugin setting **Lightbox information** controls whether the complete information area appears beside the image/video, below it, or is hidden. This is intentionally a plugin-wide presentation setting; there is no `metadataposition` placeholder parameter.
+
+`showmetadata="false"` remains available as a per-gallery override. It suppresses only the metadata rows, not the title or description.
 
 ## JSON metadata
 
@@ -165,6 +173,12 @@ Supported item properties are:
 - `copyright`
 - `alt`
 - `poster` (videos only)
+- `camera`
+- `lens`
+- `exposure`
+- `aperture`
+- `iso`
+- `focal_length`
 
 All fields are optional.
 
@@ -197,11 +211,13 @@ The sidecar contains only the item object:
 Metadata precedence is:
 
 ```text
-automatically derived values
+automatically derived values, including enabled EXIF fields
 → inheritable values from "." in gallery.json
 → matching file entry in gallery.json
 → individual filename.ext.json sidecar
 ```
+
+JSON therefore overrides matching EXIF values.
 
 ## Video posters
 
@@ -256,9 +272,9 @@ Trusted HTML mode remains available by putting `!HTML` on the first line:
 
 The remaining content is then emitted as raw HTML, just as in previous plugin versions.
 
-## Metadata display
+## Metadata display and EXIF
 
-Metadata is intended primarily for the built-in lightbox. It can be enabled independently from captions in the gallery grid/slider.
+Metadata is intended primarily for the built-in lightbox and is independent from captions in the gallery grid/slider.
 
 The plugin settings let you choose which metadata rows should be shown when values exist:
 
@@ -269,10 +285,20 @@ The plugin settings let you choose which metadata rows should be shown when valu
 - image dimensions
 - file size
 - filename
+- camera
+- lens
+- exposure time
+- aperture
+- ISO
+- focal length
 
 Image dimensions and file size are derived automatically. Empty values are omitted.
 
-`showmetadata="false"` can disable the metadata block for one gallery without disabling its title or description.
+EXIF reading is optional and disabled by default. When enabled, JPEG files are inspected only if PHP's EXIF extension is available. Punga Simple Gallery reads a conservative set of fields: capture date, author, copyright, camera make/model, lens model, exposure time, aperture, ISO and focal length. GPS EXIF sections are deliberately not requested or exposed.
+
+The JSON keys `date`, `author`, `copyright`, `camera`, `lens`, `exposure`, `aperture`, `iso` and `focal_length` may override those automatically read values.
+
+`showmetadata="false"` can suppress the metadata rows for one gallery without disabling its title or description. The placement of the information area itself is controlled only in the plugin settings.
 
 ## Sorting
 
